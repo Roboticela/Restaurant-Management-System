@@ -1,0 +1,124 @@
+{
+  "name": "restaurant-management-system",
+  "productName": "Restaurant Management System",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "dev": "npm run build-electron && concurrently \"npm run next-dev\" \"npm run electron-dev\"",
+    "build-electron": "tsx electron/build.ts",
+    "start": "next start",
+    "build": "next build && npm run build-electron",
+    "build:electron": "tsc -p electron",
+    "lint": "next lint",
+    "electron": "electron .",
+    "electron-dev": "wait-on http://localhost:3000 && electron .",
+    "next-dev": "next dev",
+    "clean": "rimraf .next out dist main.js preload.js",
+    "package": "set CSC_IDENTITY_AUTO_DISCOVERY=false && electron-builder build --win -c.extraMetadata.main=main.js --publish never",
+    "package:win": "electron-builder build --win -c.extraMetadata.main=main.js",
+    "package:mac": "electron-builder build --mac -c.extraMetadata.main=main.js",
+    "package:linux": "electron-builder build --linux -c.extraMetadata.main=main.js",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "@chakra-ui/react": "^3.5.1",
+    "@chakra-ui/theme-utils": "^2.0.21",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@tailwindcss/postcss": "^4.0.0",
+    "axios": "^1.7.9",
+    "better-sqlite3": "^11.8.1",
+    "date-fns": "^4.1.0",
+    "electron-is-dev": "^2.0.0",
+    "electron-store": "^10.0.1",
+    "framer-motion": "^12.0.5",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^2.5.2",
+    "next": "15.1.6",
+    "pdf-to-printer": "^5.6.0",
+    "pdfkit": "^0.16.0",
+    "puppeteer": "^21.0.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "react-icons": "^5.4.0",
+    "react-to-print": "^3.0.5",
+    "recharts": "^2.15.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.10",
+    "@types/pdfkit": "^0.13.9",
+    "@types/react": "19.0.8",
+    "@types/react-dom": "19.0.3",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
+    "electron": "^34.0.2",
+    "electron-builder": "^25.1.8",
+    "electron-packager": "^17.1.2",
+    "esbuild": "^0.19.12",
+    "eslint": "9.19.0",
+    "eslint-config-next": "15.1.6",
+    "postcss": "^8.5.1",
+    "rimraf": "^5.0.0",
+    "tailwindcss": "^4.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "wait-on": "^8.0.2"
+  },
+  "build": {
+    "appId": "com.restaurant.management",
+    "productName": "Restaurant Management System",
+    "files": [
+      ".next/**/*",
+      "main.js",
+      "preload.js",
+      "package.json",
+      "node_modules/**/*",
+      "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": ".next/static",
+        "to": "static"
+      },
+      {
+        "from": ".next/server/pages",
+        "to": "pages"
+      },
+      {
+        "from": "public",
+        "to": "public"
+      }
+    ],
+    "directories": {
+      "buildResources": "assets",
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "sign": false,
+      "icon": "assets/icon.ico",
+      "fileAssociations": [
+        {
+          "ext": "rms",
+          "name": "Restaurant Management System File"
+        }
+      ]
+    },
+    "nsis": {
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Restaurant Management System",
+      "menuCategory": "Restaurant Management System"
+    },
+    "forceCodeSigning": false
+  },
+  "description": "Restaurant Management System",
+  "author": "Muhammad Shahsawar Khan",
+  "license": "ISC"
+}

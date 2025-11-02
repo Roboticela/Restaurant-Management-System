@@ -12,9 +12,10 @@
   "app": {
     "windows": [
       {
-        "title": "restaurant-management-system",
-        "width": 800,
-        "height": 600
+        "title": "Restaurant Management System",
+        "width": 1200,
+        "height": 800,
+        "center": true
       }
     ],
     "security": {
@@ -31,5 +32,6 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
-  }
+  },
+  "plugins": {}
 }
