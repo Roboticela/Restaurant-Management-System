@@ -4,6 +4,7 @@ import { MdArrowBack, MdDelete, MdFilterList } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { Transaction } from '../types';
+import DatePicker from '../components/DatePicker';
 
 export default function Transactions() {
   const navigate = useNavigate();
@@ -196,39 +197,35 @@ export default function Transactions() {
         {/* Filters */}
         {showFilters && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.2 }}
+            className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6 overflow-visible"
           >
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-white mb-2">Start Date</label>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg bg-slate-700 text-white"
-                />
-              </div>
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-white mb-2">End Date</label>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg bg-slate-700 text-white"
-                />
-              </div>
-              {(startDate || endDate) && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <DatePicker
+                label="Start Date"
+                value={startDate}
+                onChange={setStartDate}
+              />
+              <DatePicker
+                label="End Date"
+                value={endDate}
+                onChange={setEndDate}
+              />
+            </div>
+            {(startDate || endDate) && (
+              <div className="mt-4 flex justify-end">
                 <button
                   onClick={clearFilters}
-                  className="text-red-400 hover:text-red-300 self-end"
+                  className="px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-400/10 
+                    rounded-lg transition-colors"
                 >
                   Clear Filters
                 </button>
-              )}
-            </div>
+              </div>
+            )}
           </motion.div>
         )}
 
