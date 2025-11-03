@@ -2,12 +2,33 @@
   "name": "restaurant-management-system",
   "private": true,
   "version": "0.1.0",
+  "description": "A comprehensive desktop application for managing restaurant operations including sales, inventory, analytics, and more",
+  "author": "Roboticela <contact@roboticela.com>",
+  "license": "MIT",
+  "homepage": "https://restaurant-management-system.roboticela.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Roboticela/Restaurant-Management-System"
+  },
+  "keywords": [
+    "restaurant",
+    "pos",
+    "management",
+    "inventory",
+    "sales",
+    "analytics",
+    "tauri",
+    "react",
+    "desktop-app"
+  ],
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "prebuild": "node scripts/update-year.cjs",
+    "predev": "node scripts/update-year.cjs"
   },
   "dependencies": {
     "react": "^19.1.0",

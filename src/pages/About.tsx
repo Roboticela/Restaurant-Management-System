@@ -24,7 +24,7 @@ export default function About() {
   const openGitHub = async () => {
     setIsOpeningGitHub(true);
     try {
-      await openUrl('https://github.com/Roboticela/restaurant-management-system');
+      await openUrl('https://github.com/Roboticela/Restaurant-Management-System');
     } catch (error) {
       console.error('Failed to open GitHub:', error);
     } finally {
@@ -37,7 +37,7 @@ export default function About() {
   const starOnGitHub = async () => {
     setIsStarringGitHub(true);
     try {
-      await openUrl('https://github.com/Roboticela/restaurant-management-system');
+      await openUrl('https://github.com/Roboticela/Restaurant-Management-System/stargazers');
     } catch (error) {
       console.error('Failed to open GitHub:', error);
     } finally {
@@ -188,7 +188,7 @@ export default function About() {
               <p>
                 <strong className="text-slate-900 dark:text-white">Landing Page:</strong> Visit our app landing page at{' '}
                 <a 
-                  href="https://github.com/Roboticela/restaurant-management-system" 
+                  href="https://restaurant-management-system.roboticela.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-400! hover:text-purple-400! underline! transition-colors duration-200 font-semibold"
@@ -199,7 +199,7 @@ export default function About() {
               <p>
                 <strong className="text-slate-900 dark:text-white">Privacy Policy:</strong> Read our{' '}
                 <a 
-                  href="https://github.com/Roboticela/restaurant-management-system/blob/main/PRIVACY.md" 
+                  href="https://restaurant-management-system.roboticela.com/privacy" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-400! hover:text-purple-400! underline! transition-colors duration-200 font-semibold"
@@ -210,7 +210,7 @@ export default function About() {
               <p>
                 <strong className="text-slate-900 dark:text-white">Terms of Use:</strong> Read our{' '}
                 <a 
-                  href="https://github.com/Roboticela/restaurant-management-system/blob/main/TERMS.md" 
+                  href="https://restaurant-management-system.roboticela.com/terms" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-400! hover:text-purple-400! underline! transition-colors duration-200 font-semibold"

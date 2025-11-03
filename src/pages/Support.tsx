@@ -324,7 +324,7 @@ export default function Support() {
               <p>
                 <strong className="text-slate-900 dark:text-white">GitHub Issues:</strong> Report bugs or request features on our{' '}
                 <a 
-                  href="https://github.com/Roboticela/restaurant-management-system/issues" 
+                  href="https://github.com/Roboticela/Restaurant-Management-System/issues" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-400! hover:text-purple-400! underline! transition-colors duration-200 font-semibold"
@@ -335,7 +335,7 @@ export default function Support() {
               <p>
                 <strong className="text-slate-900 dark:text-white">App Website:</strong> Visit our official website at{' '}
                 <a 
-                  href="https://github.com/Roboticela/restaurant-management-system" 
+                  href="https://restaurant-management-system.roboticela.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-blue-400! hover:text-purple-400! underline! transition-colors duration-200 font-semibold"
