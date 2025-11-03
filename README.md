@@ -156,6 +156,8 @@ Whether you're running a small café or a large restaurant, this application is 
 
 Before installing, ensure you have the following:
 
+> 💡 **For detailed installation instructions and complete dependency lists, see [INSTALL_DEPENDENCIES.md](INSTALL_DEPENDENCIES.md)**
+
 ### Required Software
 
 1. **Node.js** (v20 or higher) - [Download](https://nodejs.org/)
@@ -214,14 +216,13 @@ xcode-select --install
 - Install [Microsoft Visual Studio C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
 - Install [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) (usually pre-installed on Windows 10/11)
 
-### For Android Development (Optional)
-If you plan to build for Android, you'll also need:
-- **JDK 17 or 21**
-- **Node.js 24**
-- **Android SDK Platform 34 or 35**
-- **Android SDK Build-Tools 34.0.0+**
-- **NDK (Native Development Kit)**
-- **Android Command-line tools**
+### For Multi-Platform & Mobile Development (Optional)
+
+If you plan to build for multiple platforms or mobile devices:
+- **Android builds** - See [INSTALL_DEPENDENCIES.md](INSTALL_DEPENDENCIES.md#android-build-tools) for Android SDK, NDK, and JDK setup
+- **iOS builds** - Requires macOS with Xcode and Apple Developer account
+- **Cross-compilation** - See [INSTALL_DEPENDENCIES.md](INSTALL_DEPENDENCIES.md#cross-compilation-tools) for toolchain setup
+- **Automated setup scripts** - Available in [INSTALL_DEPENDENCIES.md](INSTALL_DEPENDENCIES.md#all-in-one-installation-scripts)
 
 ---
 
@@ -289,7 +290,26 @@ Then open http://localhost:5173 in your browser.
 
 ## 📦 Building for Production
 
-### Build All Platforms
+### Prerequisites
+
+Before building for production, ensure you have:
+
+1. **All dependencies installed** - See [INSTALL_DEPENDENCIES.md](INSTALL_DEPENDENCIES.md) for detailed platform-specific setup
+2. **Node.js 20+** and **pnpm** installed
+3. **Rust** and **Cargo** installed
+4. **Platform-specific build tools** (WebKit2GTK for Linux, MSVC for Windows, Xcode for macOS)
+
+To verify your setup:
+```bash
+node --version
+pnpm --version
+rustc --version
+cargo --version
+```
+
+### Quick Build (Current Platform)
+
+Build for your current platform:
 
 ```bash
 pnpm run build
@@ -299,50 +319,338 @@ npm run build
 npm run tauri build
 ```
 
-### Platform-Specific Builds
+This will:
+1. Build the frontend (React + Vite)
+2. Compile the Rust backend
+3. Bundle the application with Tauri
+4. Generate platform-specific installers
 
-#### Linux
+### Automated Multi-Platform Builds
+
+#### Build for Desktop (All Platforms)
 ```bash
-pnpm run tauri build -- --target x86_64-unknown-linux-gnu
+pnpm build:desktop
 ```
 
-Output files:
+This builds for your current platform and generates checksums.
+
+#### Build for Android
+```bash
+pnpm build:android
+```
+
+**Note:** Requires Android SDK. See [INSTALL_DEPENDENCIES.md](INSTALL_DEPENDENCIES.md) for setup.
+
+#### Build for iOS
+```bash
+pnpm build:ios
+```
+
+**Note:** Requires macOS with Xcode. See [INSTALL_DEPENDENCIES.md](INSTALL_DEPENDENCIES.md) for setup.
+
+#### Build for All Available Platforms
+```bash
+pnpm build:all
+```
+
+This script automatically:
+- Detects your current platform
+- Builds for all compatible targets
+- Skips platforms that require unavailable toolchains
+- Generates checksums for all builds
+- Provides a detailed build summary
+
+The script will intelligently handle cross-compilation and skip unsupported builds.
+
+### Platform-Specific Manual Builds
+
+#### Linux
+
+**x86_64 (64-bit Intel/AMD):**
+```bash
+pnpm tauri build -- --target x86_64-unknown-linux-gnu
+```
+
+**ARM64 (64-bit ARM):**
+```bash
+pnpm tauri build -- --target aarch64-unknown-linux-gnu
+```
+
+**ARMv7 (32-bit ARM):**
+```bash
+pnpm tauri build -- --target armv7-unknown-linux-gnueabihf
+```
+
+**Output formats:**
 - `.deb` package (Debian/Ubuntu)
+- `.rpm` package (Fedora/RHEL) - when built on RPM-based systems
 - `.AppImage` (Universal Linux)
 
 #### Windows
+
+**x86_64 (64-bit):**
 ```bash
-pnpm run tauri build -- --target x86_64-pc-windows-msvc
+pnpm tauri build -- --target x86_64-pc-windows-msvc
 ```
 
-Output files:
-- `.msi` installer
+**ARM64 (ARM-based Windows):**
+```bash
+pnpm tauri build -- --target aarch64-pc-windows-msvc
+```
+
+**i686 (32-bit - legacy):**
+```bash
+pnpm tauri build -- --target i686-pc-windows-msvc
+```
+
+**Output formats:**
+- `.msi` installer (Windows Installer)
 - `.exe` standalone executable
 
 #### macOS
-```bash
-# Intel Macs
-pnpm run tauri build -- --target x86_64-apple-darwin
 
-# Apple Silicon (M1/M2/M3)
-pnpm run tauri build -- --target aarch64-apple-darwin
+**Intel Macs (x86_64):**
+```bash
+pnpm tauri build -- --target x86_64-apple-darwin
 ```
 
-Output files:
-- `.dmg` disk image
+**Apple Silicon (M1/M2/M3/M4 - ARM64):**
+```bash
+pnpm tauri build -- --target aarch64-apple-darwin
+```
+
+**Universal Binary (Intel + Apple Silicon):**
+```bash
+pnpm tauri build -- --target universal-apple-darwin
+```
+
+**Output formats:**
+- `.dmg` disk image (recommended for distribution)
 - `.app` application bundle
 
-### Build Output Location
+#### Android
 
-All built applications are available in:
-```
-src-tauri/target/release/
+**ARM64 (64-bit - most modern devices):**
+```bash
+pnpm tauri android build --target aarch64 --apk
 ```
 
-And platform-specific installers in:
+**ARMv7 (32-bit - older devices):**
+```bash
+pnpm tauri android build --target armv7 --apk
 ```
-src-tauri/target/release/bundle/
+
+**x86_64 (64-bit emulators):**
+```bash
+pnpm tauri android build --target x86_64 --apk
 ```
+
+**Output format:**
+- `.apk` package (Android Package)
+
+**Note:** Android builds require Android SDK, NDK, and JDK. See [INSTALL_DEPENDENCIES.md](INSTALL_DEPENDENCIES.md) for complete setup instructions.
+
+#### iOS
+
+**Device (ARM64):**
+```bash
+pnpm tauri ios build -- --target aarch64-apple-ios
+```
+
+**Simulator (Intel):**
+```bash
+pnpm tauri ios build -- --target x86_64-apple-ios
+```
+
+**Simulator (Apple Silicon):**
+```bash
+pnpm tauri ios build -- --target aarch64-apple-ios-sim
+```
+
+**Output format:**
+- `.ipa` package (iOS App)
+
+**Note:** iOS builds require macOS with Xcode and an Apple Developer account for distribution.
+
+### Build Output Locations
+
+**Desktop builds:**
+```
+src-tauri/target/release/          # Executables
+src-tauri/target/release/bundle/   # Installers
+```
+
+**Android builds:**
+```
+src-tauri/gen/android/app/build/outputs/apk/
+```
+
+**iOS builds:**
+```
+src-tauri/gen/ios/build/
+```
+
+### Advanced Build Options
+
+#### Debug Build (Faster, Larger, with Debug Symbols)
+```bash
+pnpm tauri build --debug
+```
+
+#### Release Build with Optimizations (Default)
+```bash
+pnpm tauri build
+```
+
+#### Build with Specific Features
+```bash
+pnpm tauri build -- --features "custom-protocol"
+```
+
+#### Verbose Build Output
+```bash
+pnpm tauri build -- --verbose
+```
+
+### 🔐 Code Signing and Checksums
+
+All builds automatically generate SHA256 checksums for integrity verification:
+
+```bash
+# Build with automatic checksum generation
+pnpm build:desktop    # Desktop (Windows, macOS, Linux)
+pnpm build:android    # Android
+pnpm build:ios        # iOS
+pnpm build:all        # All platforms
+```
+
+Each build artifact gets:
+- Individual `.sha256` checksum file
+- Combined `CHECKSUMS.txt` manifest
+
+**Manually generate checksums:**
+```bash
+pnpm checksums
+```
+
+**Verify downloads:**
+```bash
+# Linux/macOS
+sha256sum -c Restaurant-Management-System.dmg.sha256
+
+# Windows (PowerShell)
+Get-FileHash Restaurant-Management-System.msi -Algorithm SHA256
+
+# Or use the included verification script
+pnpm verify /path/to/installer
+```
+
+For detailed code signing, notarization, and security information, see [SIGNING.md](SIGNING.md).
+
+### Cross-Platform Build Matrix
+
+| Platform | Host OS | Requirements |
+|----------|---------|--------------|
+| **Linux x86_64** | Linux, macOS, Windows | GTK3, WebKit2GTK |
+| **Linux ARM64** | Linux | ARM64 cross-compiler |
+| **Linux ARMv7** | Linux | ARMv7 cross-compiler |
+| **Windows x86_64** | Windows | MSVC or MinGW (Linux) |
+| **Windows ARM64** | Windows | MSVC ARM64 tools |
+| **macOS Intel** | macOS | Xcode |
+| **macOS ARM64** | macOS (Apple Silicon) | Xcode |
+| **Android** | Linux, macOS, Windows | Android SDK, NDK, JDK 17+ |
+| **iOS** | macOS only | Xcode, Apple Developer |
+
+### CI/CD Builds
+
+For automated builds in CI/CD pipelines:
+
+**GitHub Actions example:**
+```yaml
+- name: Install dependencies
+  run: |
+    # See INSTALL_DEPENDENCIES.md for platform-specific commands
+    
+- name: Build desktop app
+  run: pnpm build:desktop
+  
+- name: Upload artifacts
+  uses: actions/upload-artifact@v3
+  with:
+    name: installers
+    path: src-tauri/target/release/bundle/
+```
+
+### Build Troubleshooting
+
+**Frontend build fails:**
+```bash
+# Clear cache and reinstall
+rm -rf node_modules dist
+pnpm install
+pnpm build
+```
+
+**Rust compilation errors:**
+```bash
+# Update Rust toolchain
+rustup update
+
+# Clean Rust build cache
+cd src-tauri
+cargo clean
+cd ..
+```
+
+**Missing dependencies:**
+- See [INSTALL_DEPENDENCIES.md](INSTALL_DEPENDENCIES.md) for complete dependency lists
+- Run the automated installation script: `./install-build-deps.sh`
+
+**Cross-compilation issues:**
+- Ensure target is installed: `rustup target add <target-triple>`
+- Install platform-specific cross-compilers (see [INSTALL_DEPENDENCIES.md](INSTALL_DEPENDENCIES.md))
+
+**Build size too large:**
+```bash
+# Strip debug symbols (Linux/macOS)
+strip src-tauri/target/release/restaurant-management-system
+
+# Or use cargo-strip
+cargo install cargo-strip
+cargo strip
+```
+
+### Production Build Checklist
+
+Before releasing:
+
+- [ ] Update version in `package.json` and `src-tauri/tauri.conf.json`
+- [ ] Update `CHANGELOG.md` with release notes
+- [ ] Test the application thoroughly in development mode
+- [ ] Run `pnpm build:all` for all platforms
+- [ ] Verify checksums are generated
+- [ ] Test installers on target platforms
+- [ ] Run security audits: `pnpm audit` and `cargo audit`
+- [ ] Update documentation if needed
+- [ ] Create GitHub release with installers and checksums
+- [ ] Update website with download links
+
+### Build Performance Tips
+
+1. **Use pnpm** instead of npm (faster, less disk space)
+2. **Enable Rust incremental compilation** (already enabled by default)
+3. **Build on SSD** for faster I/O
+4. **Allocate sufficient RAM** (8GB+ recommended)
+5. **Use multi-core builds** (Rust uses all cores by default)
+6. **Cache dependencies** in CI/CD (node_modules, cargo cache)
+
+### Additional Resources
+
+- **Detailed dependency installation:** [INSTALL_DEPENDENCIES.md](INSTALL_DEPENDENCIES.md)
+- **Code signing guide:** [SIGNING.md](SIGNING.md)
+- **Tauri documentation:** https://tauri.app/
+- **Build configuration:** `src-tauri/tauri.conf.json`
+- **Build scripts:** `scripts/build-all.cjs`
 
 ---
 

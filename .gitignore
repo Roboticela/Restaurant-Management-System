@@ -24,3 +24,6 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Build artifacts and checksums are generated, don't commit
+src-tauri/target/

@@ -55,7 +55,13 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "prebuild": "node scripts/update-year.cjs",
-    "predev": "node scripts/update-year.cjs"
+    "predev": "node scripts/update-year.cjs",
+    "build:desktop": "pnpm build && pnpm tauri build && node scripts/generate-checksums.cjs",
+    "build:android": "pnpm tauri android build && node scripts/generate-checksums.cjs",
+    "build:ios": "pnpm tauri ios build && node scripts/generate-checksums.cjs",
+    "build:all": "node scripts/build-all.cjs",
+    "checksums": "node scripts/generate-checksums.cjs",
+    "verify": "node scripts/verify-checksum.cjs"
   },
   "dependencies": {
     "react": "^19.1.0",
