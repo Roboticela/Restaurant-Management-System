@@ -1,7 +1,15 @@
 mod database;
+mod email;
 
 use database::*;
 use tauri::AppHandle;
+
+// Load environment variables at startup
+fn load_env() {
+    if let Err(e) = dotenvy::dotenv() {
+        eprintln!("Warning: Could not load .env file: {}", e);
+    }
+}
 
 #[tauri::command]
 fn get_products(app: AppHandle) -> Result<Vec<Product>, String> {
@@ -73,8 +81,21 @@ fn import_database_cmd(app: AppHandle, data: String) -> Result<(), String> {
     database::import_database(&db_path, decoded).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn send_support_email(
+    name: String,
+    email: String,
+    subject: String,
+    message: String,
+) -> Result<(), String> {
+    email::send_support_email(name, email, subject, message)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Load environment variables
+    load_env();
+    
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -96,6 +117,7 @@ pub fn run() {
             get_analytics,
             export_database_cmd,
             import_database_cmd,
+            send_support_email,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

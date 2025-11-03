@@ -1,16 +1,26 @@
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
-import { MdArrowBack, MdShoppingCart, MdCheckCircle } from 'react-icons/md';
+import { useState, useEffect, useRef } from 'react';
+import { MdArrowBack, MdShoppingCart, MdCheckCircle, MdLocalPrintshop, MdFileDownload } from 'react-icons/md';
 import { FaPlus } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { Product, Settings, CartItem, Sale as SaleType } from '../types';
+import Receipt from '../components/Receipt';
+import jsPDF from 'jspdf';
 
 export default function Sale() {
   const navigate = useNavigate();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [showSuccessDialog, setShowSuccessDialog] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
+  const [receiptData, setReceiptData] = useState<{
+    products: { name: string; quantity: number; unit: string; price: number }[];
+    totalAmount: number;
+    date: string;
+    time: string;
+    receiptNumber: string;
+  } | null>(null);
+  const receiptRef = useRef<HTMLDivElement>(null);
   const [settings, setSettings] = useState<Settings>({
     restaurant_name: 'Restaurant Management System',
     address: '',
@@ -18,6 +28,14 @@ export default function Sale() {
     currency: 'PKR',
     receipt_footer: 'Thank you for your business!'
   });
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  const handleBackNavigation = () => {
+    setIsNavigating(true);
+    setTimeout(() => {
+      navigate('/');
+    }, 300);
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -97,6 +115,22 @@ export default function Sale() {
           currency: settings.currency
         } as SaleType
       });
+
+      // Generate receipt data
+      const now = new Date();
+      setReceiptData({
+        products: cart.map(item => ({
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
+          price: item.price * item.quantity
+        })),
+        totalAmount,
+        date: now.toLocaleDateString(),
+        time: now.toLocaleTimeString(),
+        receiptNumber: Math.random().toString(36).substr(2, 9).toUpperCase()
+      });
+
       setShowSuccessDialog(true);
     } catch (error) {
       console.error('Error saving sale:', error);
@@ -107,6 +141,114 @@ export default function Sale() {
   const handleNewSale = () => {
     setCart([]);
     setShowSuccessDialog(false);
+    setReceiptData(null);
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!receiptData) {
+      alert('Receipt not ready. Please try again.');
+      return;
+    }
+
+    try {
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [80, 297] // 80mm width, A4 height
+      });
+
+      let yPos = 10;
+      const pageWidth = 80;
+      const margin = 5;
+      const contentWidth = pageWidth - (margin * 2);
+
+      // Header
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      const restaurantName = settings.restaurant_name || 'Restaurant Management System';
+      pdf.text(restaurantName, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 7;
+
+      // Address and Phone
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      if (settings.address) {
+        pdf.text(settings.address, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 5;
+      }
+      if (settings.phone) {
+        pdf.text(`Tel: ${settings.phone}`, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 5;
+      }
+
+      // Date and Time
+      pdf.text(`Date: ${receiptData.date}  Time: ${receiptData.time}`, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 4;
+      pdf.text(`Receipt #: ${receiptData.receiptNumber}`, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 6;
+
+      // Separator
+      pdf.setDrawColor(0);
+      pdf.setLineWidth(0.3);
+      for (let i = 0; i < contentWidth; i += 2) {
+        pdf.line(margin + i, yPos, margin + i + 1, yPos);
+      }
+      yPos += 5;
+
+      // Items Header
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Item', margin, yPos);
+      pdf.text('Qty', pageWidth / 2, yPos, { align: 'center' });
+      pdf.text('Price', pageWidth - margin, yPos, { align: 'right' });
+      yPos += 5;
+
+      // Items
+      pdf.setFont('helvetica', 'normal');
+      receiptData.products.forEach(product => {
+        const itemName = product.name.length > 18 ? product.name.substring(0, 18) + '...' : product.name;
+        pdf.text(itemName, margin, yPos);
+        pdf.text(`${product.quantity} ${product.unit}`, pageWidth / 2, yPos, { align: 'center' });
+        pdf.text(`${settings.currency} ${product.price.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
+        yPos += 5;
+      });
+
+      // Separator
+      yPos += 1;
+      for (let i = 0; i < contentWidth; i += 2) {
+        pdf.line(margin + i, yPos, margin + i + 1, yPos);
+      }
+      yPos += 5;
+
+      // Total
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Total', margin, yPos);
+      pdf.text(`${settings.currency} ${receiptData.totalAmount.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
+      yPos += 8;
+
+      // Footer
+      if (settings.receipt_footer) {
+        for (let i = 0; i < contentWidth; i += 2) {
+          pdf.line(margin + i, yPos, margin + i + 1, yPos);
+        }
+        yPos += 5;
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'normal');
+        const footerLines = pdf.splitTextToSize(settings.receipt_footer, contentWidth);
+        pdf.text(footerLines, pageWidth / 2, yPos, { align: 'center' });
+      }
+
+      const filename = `receipt-${receiptData.receiptNumber}.pdf`;
+      pdf.save(filename);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert(`Error generating PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   const totalAmount = cart.reduce((sum, item) => 
@@ -114,23 +256,37 @@ export default function Sale() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-slate-900">
       <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-0 sm:justify-between mb-6 sm:mb-8">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/')}
-            className="flex items-center text-white gap-2 bg-purple-600/30 px-4 py-2 rounded-lg"
+            onClick={handleBackNavigation}
+            className="flex items-center text-white gap-2 bg-purple-600/30 px-4 py-2 rounded-lg min-w-[120px] justify-center"
+            disabled={isNavigating}
           >
-            <MdArrowBack className="w-5 h-5" />
-            <span>Back</span>
+            {isNavigating ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                />
+                <span>Loading...</span>
+              </>
+            ) : (
+              <>
+                <MdArrowBack className="w-5 h-5" />
+                <span>Back</span>
+              </>
+            )}
           </motion.button>
           <motion.h1 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-2xl sm:text-3xl font-bold text-white order-first sm:order-none"
+            className="text-2xl sm:text-3xl font-bold text-white order-first sm:order-0"
           >
             New Sale
           </motion.h1>
@@ -272,7 +428,7 @@ export default function Sale() {
           className={`w-full py-4 rounded-xl flex items-center justify-center gap-3 text-white font-semibold
             transition-all duration-300 ${cart.length === 0 
               ? 'bg-gray-500/50 cursor-not-allowed' 
-              : 'bg-gradient-to-r from-teal-500 to-teal-600'}`}
+              : 'bg-teal-500'}`}
         >
           <MdShoppingCart className="text-xl" />
           Complete Sale
@@ -280,18 +436,18 @@ export default function Sale() {
       </div>
 
       {/* Success Dialog */}
-      {showSuccessDialog && (
+      {showSuccessDialog && receiptData && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto"
         >
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
-            className="bg-slate-800 rounded-2xl p-6 max-w-md w-full"
+            className="bg-slate-800 rounded-2xl p-6 max-w-md w-full my-8"
           >
             <div className="text-center">
               <motion.div
@@ -315,13 +471,51 @@ export default function Sale() {
                 Sale Complete!
               </motion.h3>
 
+              {/* Receipt Preview */}
+              <div className="mb-6">
+                <Receipt
+                  ref={receiptRef}
+                  products={receiptData.products}
+                  totalAmount={receiptData.totalAmount}
+                  date={receiptData.date}
+                  time={receiptData.time}
+                  settings={settings}
+                  receiptNumber={receiptData.receiptNumber}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleDownloadPDF}
+                  className="py-3 px-4 bg-blue-500 text-white rounded-xl font-semibold 
+                    transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  <MdFileDownload className="text-xl" />
+                  PDF
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handlePrint}
+                  className="py-3 px-4 bg-purple-500 text-white rounded-xl font-semibold 
+                    transition-all duration-300 flex items-center justify-center gap-2"
+                >
+                  <MdLocalPrintshop className="text-xl" />
+                  Print
+                </motion.button>
+              </div>
+
               <motion.button
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleNewSale}
-                className="w-full mt-4 py-3 px-4 bg-gradient-to-r from-teal-500 to-teal-600 
+                className="w-full py-3 px-4 bg-teal-500 
                   text-white rounded-xl font-semibold 
                   transition-all duration-300 flex items-center justify-center gap-2"
               >

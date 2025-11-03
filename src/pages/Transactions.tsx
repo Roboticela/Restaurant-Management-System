@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion';
-import { useState, useMemo, useEffect } from 'react';
-import { MdArrowBack, MdDelete, MdFilterList } from 'react-icons/md';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import { MdArrowBack, MdDelete, MdFilterList, MdLocalPrintshop, MdFileDownload, MdClose } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
-import { Transaction } from '../types';
+import { Transaction, Settings } from '../types';
 import DatePicker from '../components/DatePicker';
+import Receipt from '../components/Receipt';
+import jsPDF from 'jspdf';
 
 export default function Transactions() {
   const navigate = useNavigate();
@@ -13,17 +15,47 @@ export default function Transactions() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
+  const [showReceiptDialog, setShowReceiptDialog] = useState<Transaction | null>(null);
+  const [settings, setSettings] = useState<Settings>({
+    restaurant_name: 'Restaurant Management System',
+    address: '',
+    phone: '',
+    currency: 'PKR',
+    receipt_footer: 'Thank you for your business!'
+  });
+  const receiptRef = useRef<HTMLDivElement>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  const handleBackNavigation = () => {
+    setIsNavigating(true);
+    setTimeout(() => {
+      navigate('/');
+    }, 300);
+  };
 
   useEffect(() => {
-    loadTransactions();
+    loadData();
   }, []);
 
-  const loadTransactions = async () => {
+  const loadData = async () => {
     try {
-      const response = await invoke<Transaction[]>('get_transactions');
-      setTransactions(response);
+      const [transactionsRes, settingsRes] = await Promise.all([
+        invoke<Transaction[]>('get_transactions'),
+        invoke<Settings>('get_settings')
+      ]);
+      
+      setTransactions(transactionsRes);
+      if (settingsRes) {
+        setSettings({
+          restaurant_name: settingsRes.restaurant_name || 'Restaurant Management System',
+          address: settingsRes.address || '',
+          phone: settingsRes.phone || '',
+          currency: settingsRes.currency || 'PKR',
+          receipt_footer: settingsRes.receipt_footer || 'Thank you for your business!'
+        });
+      }
     } catch (error) {
-      console.error('Error loading transactions:', error);
+      console.error('Error loading data:', error);
     } finally {
       setLoading(false);
     }
@@ -86,9 +118,117 @@ export default function Transactions() {
     setEndDate("");
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!showReceiptDialog) {
+      alert('Receipt not ready. Please try again.');
+      return;
+    }
+
+    try {
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [80, 297] // 80mm width, A4 height
+      });
+
+      let yPos = 10;
+      const pageWidth = 80;
+      const margin = 5;
+      const contentWidth = pageWidth - (margin * 2);
+
+      // Header
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'bold');
+      const restaurantName = settings.restaurant_name || 'Restaurant Management System';
+      pdf.text(restaurantName, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 7;
+
+      // Address and Phone
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'normal');
+      if (settings.address) {
+        pdf.text(settings.address, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 5;
+      }
+      if (settings.phone) {
+        pdf.text(`Tel: ${settings.phone}`, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 5;
+      }
+
+      // Date and Time
+      pdf.text(`Date: ${showReceiptDialog.date}  Time: ${showReceiptDialog.time}`, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 4;
+      pdf.text(`Receipt #: ${showReceiptDialog.id}`, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 6;
+
+      // Separator
+      pdf.setDrawColor(0);
+      pdf.setLineWidth(0.3);
+      for (let i = 0; i < contentWidth; i += 2) {
+        pdf.line(margin + i, yPos, margin + i + 1, yPos);
+      }
+      yPos += 5;
+
+      // Items Header
+      pdf.setFontSize(9);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Item', margin, yPos);
+      pdf.text('Qty', pageWidth / 2, yPos, { align: 'center' });
+      pdf.text('Price', pageWidth - margin, yPos, { align: 'right' });
+      yPos += 5;
+
+      // Items
+      pdf.setFont('helvetica', 'normal');
+      showReceiptDialog.items.forEach(item => {
+        const itemName = item.name.length > 18 ? item.name.substring(0, 18) + '...' : item.name;
+        const itemPrice = item.subtotal || (item.price * item.quantity);
+        pdf.text(itemName, margin, yPos);
+        pdf.text(`${item.quantity} ${item.unit}`, pageWidth / 2, yPos, { align: 'center' });
+        pdf.text(`${showReceiptDialog.currency} ${itemPrice.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
+        yPos += 5;
+      });
+
+      // Separator
+      yPos += 1;
+      for (let i = 0; i < contentWidth; i += 2) {
+        pdf.line(margin + i, yPos, margin + i + 1, yPos);
+      }
+      yPos += 5;
+
+      // Total
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Total', margin, yPos);
+      pdf.text(`${showReceiptDialog.currency} ${showReceiptDialog.total_amount.toFixed(2)}`, pageWidth - margin, yPos, { align: 'right' });
+      yPos += 8;
+
+      // Footer
+      if (settings.receipt_footer) {
+        for (let i = 0; i < contentWidth; i += 2) {
+          pdf.line(margin + i, yPos, margin + i + 1, yPos);
+        }
+        yPos += 5;
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'normal');
+        const footerLines = pdf.splitTextToSize(settings.receipt_footer, contentWidth);
+        pdf.text(footerLines, pageWidth / 2, yPos, { align: 'center' });
+      }
+
+      const filename = `receipt-${showReceiptDialog.id}.pdf`;
+      pdf.save(filename);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert(`Error generating PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 
+      <div className="min-h-screen bg-slate-900 
     flex items-center justify-center">
         <div className="text-white">Loading transactions...</div>
       </div>
@@ -96,18 +236,32 @@ export default function Transactions() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-slate-900">
       <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-0 sm:justify-between mb-6">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/')}
-            className="flex items-center text-white gap-2 bg-purple-600/30 px-4 py-2 rounded-lg"
+            onClick={handleBackNavigation}
+            className="flex items-center text-white gap-2 bg-purple-600/30 px-4 py-2 rounded-lg min-w-[120px] justify-center"
+            disabled={isNavigating}
           >
-            <MdArrowBack className="w-5 h-5" />
-            <span>Back</span>
+            {isNavigating ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                />
+                <span>Loading...</span>
+              </>
+            ) : (
+              <>
+                <MdArrowBack className="w-5 h-5" />
+                <span>Back</span>
+              </>
+            )}
           </motion.button>
           <motion.h1 
             initial={{ opacity: 0, y: -20 }}
@@ -255,6 +409,14 @@ export default function Transactions() {
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
+                    onClick={() => setShowReceiptDialog(transaction)}
+                    className="text-white hover:text-teal-300 p-2 bg-teal-500/30 rounded-lg"
+                  >
+                    <MdLocalPrintshop className="w-5 h-5" />
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
                     onClick={() => handleDeleteTransaction(transaction.id)}
                     className="text-red-400 hover:text-red-300 p-2"
                   >
@@ -295,6 +457,80 @@ export default function Transactions() {
           )}
         </div>
       </div>
+
+      {/* Receipt Dialog */}
+      {showReceiptDialog && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto"
+          onClick={() => setShowReceiptDialog(null)}
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            className="bg-slate-800 rounded-2xl p-6 max-w-md w-full my-8"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-white">Receipt</h3>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setShowReceiptDialog(null)}
+                className="text-white/60 hover:text-white p-2"
+              >
+                <MdClose className="w-6 h-6" />
+              </motion.button>
+            </div>
+
+            {/* Receipt Preview */}
+            <div className="mb-6">
+              <Receipt
+                ref={receiptRef}
+                products={showReceiptDialog.items.map(item => ({
+                  name: item.name,
+                  quantity: item.quantity,
+                  unit: item.unit,
+                  price: item.subtotal || (item.price * item.quantity)
+                }))}
+                totalAmount={showReceiptDialog.total_amount}
+                date={showReceiptDialog.date}
+                time={showReceiptDialog.time}
+                settings={settings}
+                receiptNumber={showReceiptDialog.id.toString()}
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleDownloadPDF}
+                className="py-3 px-4 bg-blue-500 text-white rounded-xl font-semibold 
+                  transition-all duration-300 flex items-center justify-center gap-2"
+              >
+                <MdFileDownload className="text-xl" />
+                PDF
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handlePrint}
+                className="py-3 px-4 bg-purple-500 text-white rounded-xl font-semibold 
+                  transition-all duration-300 flex items-center justify-center gap-2"
+              >
+                <MdLocalPrintshop className="text-xl" />
+                Print
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 }

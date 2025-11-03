@@ -12,6 +12,14 @@ export default function ProductManager() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newProduct, setNewProduct] = useState({ name: '', price: '', unit: 'item' });
   const [currencySymbol, setCurrencySymbol] = useState('PKR');
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  const handleBackNavigation = () => {
+    setIsNavigating(true);
+    setTimeout(() => {
+      navigate('/');
+    }, 300);
+  };
 
   useEffect(() => {
     const loadCurrency = async () => {
@@ -72,23 +80,37 @@ export default function ProductManager() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-0 sm:justify-between mb-6 sm:mb-8">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/')}
-            className="flex items-center text-white gap-2 bg-purple-600/30 px-4 py-2 rounded-lg"
+            onClick={handleBackNavigation}
+            className="flex items-center text-white gap-2 bg-purple-600/30 px-4 py-2 rounded-lg min-w-[120px] justify-center"
+            disabled={isNavigating}
           >
-            <MdArrowBack className="w-5 h-5" />
-            <span>Back</span>
+            {isNavigating ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                />
+                <span>Loading...</span>
+              </>
+            ) : (
+              <>
+                <MdArrowBack className="w-5 h-5" />
+                <span>Back</span>
+              </>
+            )}
           </motion.button>
           <motion.h1 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-2xl sm:text-3xl font-bold text-white order-first sm:order-none"
+            className="text-2xl sm:text-3xl font-bold text-white order-first sm:order-0"
           >
             Product Manager
           </motion.h1>
@@ -112,7 +134,7 @@ export default function ProductManager() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setShowAddModal(true)}
-          className="w-full mb-6 sm:mb-8 bg-gradient-to-r from-teal-500 to-teal-600 text-white 
+          className="w-full mb-6 sm:mb-8 bg-linear-to-r from-teal-500 to-teal-600 text-white 
             rounded-xl py-3 sm:py-4 px-4 sm:px-6 flex items-center justify-center gap-2 
             transition-all duration-300"
         >

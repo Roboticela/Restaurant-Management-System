@@ -5,6 +5,8 @@ import Sale from './pages/Sale';
 import Analytics from './pages/Analytics';
 import Transactions from './pages/Transactions';
 import Settings from './pages/Settings';
+import About from './pages/About';
+import Support from './pages/Support';
 
 function App() {
   return (
@@ -16,6 +18,8 @@ function App() {
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/transactions" element={<Transactions />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/support" element={<Support />} />
       </Routes>
     </Router>
   );

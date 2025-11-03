@@ -21,6 +21,14 @@ export default function Analytics() {
   });
   const [currency, setCurrency] = useState('PKR');
   const [loading, setLoading] = useState(true);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  const handleBackNavigation = () => {
+    setIsNavigating(true);
+    setTimeout(() => {
+      navigate('/');
+    }, 300);
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -51,7 +59,7 @@ export default function Analytics() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 
+      <div className="min-h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900 
     flex items-center justify-center">
         <div className="text-white">Loading analytics...</div>
       </div>
@@ -59,18 +67,32 @@ export default function Analytics() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-center gap-4 sm:justify-between mb-8">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/')}
-            className="flex items-center text-white gap-2 bg-purple-600/30 px-4 py-2 rounded-lg"
+            onClick={handleBackNavigation}
+            className="flex items-center text-white gap-2 bg-purple-600/30 px-4 py-2 rounded-lg min-w-[120px] justify-center"
+            disabled={isNavigating}
           >
-            <MdArrowBack className="w-5 h-5" />
-            <span>Back</span>
+            {isNavigating ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                />
+                <span>Loading...</span>
+              </>
+            ) : (
+              <>
+                <MdArrowBack className="w-5 h-5" />
+                <span>Back</span>
+              </>
+            )}
           </motion.button>
           <h1 className="text-2xl sm:text-3xl font-bold text-white">Analytics Dashboard</h1>
           <div className="hidden sm:block w-32"></div>

@@ -9,6 +9,8 @@ A comprehensive Restaurant Management System built with Tauri and React. This de
 - **Analytics Dashboard**: Visual insights with charts showing revenue, top products, and trends
 - **Transaction History**: View and manage all past transactions with filtering options
 - **Settings**: Configure restaurant details, currency, logo, and database import/export
+- **About Page**: Information about the project, contributors, privacy policy, and terms of use
+- **Support Page**: Contact form for users to send support messages via SMTP
 - **Beautiful UI**: Modern, responsive design with animations using Framer Motion
 
 ## Technology Stack
@@ -113,7 +115,9 @@ restaurant-management-system/
 │   │   ├── Sale.tsx
 │   │   ├── Analytics.tsx
 │   │   ├── Transactions.tsx
-│   │   └── Settings.tsx
+│   │   ├── Settings.tsx
+│   │   ├── About.tsx        # About page
+│   │   └── Support.tsx      # Support/contact page
 │   ├── App.tsx              # Main app component with routing
 │   ├── main.tsx             # React entry point
 │   ├── index.css            # Global styles
@@ -122,11 +126,16 @@ restaurant-management-system/
 │   ├── src/
 │   │   ├── lib.rs          # Tauri commands
 │   │   ├── main.rs         # Main entry point
-│   │   └── database.rs     # Database operations
+│   │   ├── database.rs     # Database operations
+│   │   └── email.rs        # Email/SMTP functionality
+│   ├── templates/
+│   │   └── support_email.html  # Email template
 │   ├── Cargo.toml          # Rust dependencies
 │   └── tauri.conf.json     # Tauri configuration
 ├── public/                  # Static assets
+├── .env.example            # Example environment variables
 ├── package.json            # Node.js dependencies
+├── SMTP_SETUP.md           # SMTP configuration guide
 └── README.md               # This file
 ```
 
@@ -178,6 +187,29 @@ restaurant-management-system/
 3. **Import/Export Database**:
    - Export: Creates a backup `.db` file
    - Import: Restore from a backup file
+
+### About
+
+1. Navigate to **About** from the home screen
+2. View information about:
+   - Project details and purpose
+   - Creator and contributors
+   - GitHub repository links
+   - How to contribute to the project
+   - Privacy policy and data handling
+   - Terms of use
+   - Technology stack used
+
+### Support
+
+1. Go to **Support** from the home screen
+2. Fill out the contact form with:
+   - Your name
+   - Your email address
+   - Subject
+   - Message describing your issue or question
+3. Click **Send Message** to submit
+4. **Note**: SMTP must be configured for email functionality. See [SMTP_SETUP.md](SMTP_SETUP.md) for configuration instructions
 
 ## Database
 
@@ -278,7 +310,10 @@ Muhammad Shahsawar Khan
 
 ## Support
 
-For issues, questions, or contributions, please open an issue on the repository.
+For issues, questions, or contributions:
+- Use the in-app **Support** page to send a message (requires SMTP configuration)
+- Open an issue on the [GitHub repository](https://github.com/Roboticela/restaurant-management-system/issues)
+- Check the **About** page for additional information and contribution guidelines
 
 ## Acknowledgments
 

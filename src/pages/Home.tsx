@@ -1,4 +1,4 @@
-import { FaUtensils, FaClipboardList, FaChartBar, FaHistory, FaCog } from 'react-icons/fa';
+import { FaUtensils, FaClipboardList, FaChartBar, FaHistory, FaCog, FaHeart, FaEnvelope } from 'react-icons/fa';
 import { MdPointOfSale } from 'react-icons/md';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -23,7 +23,7 @@ export default function Home() {
       opacity: 1,
       x: 0,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 100,
         damping: 12
       }
@@ -35,7 +35,7 @@ export default function Home() {
     animate: {
       scale: 1,
       transition: {
-        type: "spring",
+        type: "spring" as const,
         stiffness: 260,
         damping: 20
       }
@@ -45,6 +45,14 @@ export default function Home() {
   const navigate = useNavigate();
   const [restaurantName, setRestaurantName] = useState('Restaurant Management System');
   const [logo, setLogo] = useState<string | null>(null);
+  const [loadingRoute, setLoadingRoute] = useState<string | null>(null);
+
+  const handleNavigation = (route: string) => {
+    setLoadingRoute(route);
+    setTimeout(() => {
+      navigate(route);
+    }, 300);
+  };
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -67,7 +75,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="max-w-7xl mx-auto px-4 py-12 md:py-24">
         {/* Header */}
         <motion.div
@@ -94,7 +102,7 @@ export default function Home() {
             )}
           </motion.div>
           <motion.h1
-            className="text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-purple-400 py-2"
+            className="text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-linear-to-r from-teal-400 to-purple-400 py-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
@@ -105,74 +113,198 @@ export default function Home() {
 
         {/* Navigation Buttons */}
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 max-w-6xl mx-auto"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-7xl mx-auto"
           variants={container}
           initial="hidden"
           animate="show"
         >
           <motion.button
             variants={item}
-            onClick={() => navigate('/manager')}
+            onClick={() => handleNavigation('/manager')}
             whileHover={{ y: -5 }}
             whileTap={{ scale: 0.98 }}
-            className="flex flex-col items-center p-8 bg-gradient-to-br from-blue-500 to-blue-600 
+            className="flex flex-col items-center p-8 bg-linear-to-br from-blue-500 to-blue-600 
             text-white rounded-2xl transition-all duration-300
-            backdrop-blur-sm bg-opacity-90 h-full"
+            backdrop-blur-sm bg-opacity-90 h-full relative"
+            disabled={loadingRoute !== null}
           >
-            <FaClipboardList className="w-12 h-12 mb-4" />
-            <span className="text-xl font-semibold text-center">Product Manager</span>
+            {loadingRoute === '/manager' ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-12 h-12 mb-4 border-4 border-white border-t-transparent rounded-full"
+                />
+                <span className="text-xl font-semibold text-center">Loading...</span>
+              </>
+            ) : (
+              <>
+                <FaClipboardList className="w-12 h-12 mb-4" />
+                <span className="text-xl font-semibold text-center">Product Manager</span>
+              </>
+            )}
           </motion.button>
 
           <motion.button
             variants={item}
-            onClick={() => navigate('/sale')}
+            onClick={() => handleNavigation('/sale')}
             whileHover={{ y: -5 }}
             whileTap={{ scale: 0.98 }}
-            className="flex flex-col items-center p-8 bg-gradient-to-br from-green-500 to-green-600 
+            className="flex flex-col items-center p-8 bg-linear-to-br from-green-500 to-green-600 
             text-white rounded-2xl transition-all duration-300
-            backdrop-blur-sm bg-opacity-90 h-full"
+            backdrop-blur-sm bg-opacity-90 h-full relative"
+            disabled={loadingRoute !== null}
           >
-            <MdPointOfSale className="w-12 h-12 mb-4" />
-            <span className="text-xl font-semibold text-center">New Sale</span>
+            {loadingRoute === '/sale' ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-12 h-12 mb-4 border-4 border-white border-t-transparent rounded-full"
+                />
+                <span className="text-xl font-semibold text-center">Loading...</span>
+              </>
+            ) : (
+              <>
+                <MdPointOfSale className="w-12 h-12 mb-4" />
+                <span className="text-xl font-semibold text-center">New Sale</span>
+              </>
+            )}
           </motion.button>
 
           <motion.button
             variants={item}
-            onClick={() => navigate('/analytics')}
+            onClick={() => handleNavigation('/analytics')}
             whileHover={{ y: -5 }}
             whileTap={{ scale: 0.98 }}
-            className="flex flex-col items-center p-8 bg-gradient-to-br from-purple-500 to-purple-600 
+            className="flex flex-col items-center p-8 bg-linear-to-br from-purple-500 to-purple-600 
             text-white rounded-2xl transition-all duration-300
-            backdrop-blur-sm bg-opacity-90 h-full"
+            backdrop-blur-sm bg-opacity-90 h-full relative"
+            disabled={loadingRoute !== null}
           >
-            <FaChartBar className="w-12 h-12 mb-4" />
-            <span className="text-xl font-semibold text-center">Analytics Dashboard</span>
+            {loadingRoute === '/analytics' ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-12 h-12 mb-4 border-4 border-white border-t-transparent rounded-full"
+                />
+                <span className="text-xl font-semibold text-center">Loading...</span>
+              </>
+            ) : (
+              <>
+                <FaChartBar className="w-12 h-12 mb-4" />
+                <span className="text-xl font-semibold text-center">Analytics Dashboard</span>
+              </>
+            )}
           </motion.button>
 
           <motion.button
             variants={item}
-            onClick={() => navigate('/transactions')}
+            onClick={() => handleNavigation('/transactions')}
             whileHover={{ y: -5 }}
             whileTap={{ scale: 0.98 }}
-            className="flex flex-col items-center p-8 bg-gradient-to-br from-orange-500 to-orange-600 
+            className="flex flex-col items-center p-8 bg-linear-to-br from-orange-500 to-orange-600 
             text-white rounded-2xl transition-all duration-300
-            backdrop-blur-sm bg-opacity-90 h-full"
+            backdrop-blur-sm bg-opacity-90 h-full relative"
+            disabled={loadingRoute !== null}
           >
-            <FaHistory className="w-12 h-12 mb-4" />
-            <span className="text-xl font-semibold text-center">Transaction History</span>
+            {loadingRoute === '/transactions' ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-12 h-12 mb-4 border-4 border-white border-t-transparent rounded-full"
+                />
+                <span className="text-xl font-semibold text-center">Loading...</span>
+              </>
+            ) : (
+              <>
+                <FaHistory className="w-12 h-12 mb-4" />
+                <span className="text-xl font-semibold text-center">Transaction History</span>
+              </>
+            )}
           </motion.button>
 
           <motion.button
             variants={item}
-            onClick={() => navigate('/settings')}
+            onClick={() => handleNavigation('/settings')}
             whileHover={{ y: -5 }}
             whileTap={{ scale: 0.98 }}
-            className="flex flex-col items-center p-8 bg-gradient-to-br from-gray-500 to-gray-600 
+            className="flex flex-col items-center p-8 bg-linear-to-br from-gray-500 to-gray-600 
             text-white rounded-2xl transition-all duration-300
-            backdrop-blur-sm bg-opacity-90 h-full"
+            backdrop-blur-sm bg-opacity-90 h-full relative"
+            disabled={loadingRoute !== null}
           >
-            <FaCog className="w-12 h-12 mb-4" />
-            <span className="text-xl font-semibold text-center">Settings</span>
+            {loadingRoute === '/settings' ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-12 h-12 mb-4 border-4 border-white border-t-transparent rounded-full"
+                />
+                <span className="text-xl font-semibold text-center">Loading...</span>
+              </>
+            ) : (
+              <>
+                <FaCog className="w-12 h-12 mb-4" />
+                <span className="text-xl font-semibold text-center">Settings</span>
+              </>
+            )}
+          </motion.button>
+
+          <motion.button
+            variants={item}
+            onClick={() => handleNavigation('/about')}
+            whileHover={{ y: -5 }}
+            whileTap={{ scale: 0.98 }}
+            className="flex flex-col items-center p-8 bg-linear-to-br from-pink-500 to-pink-600 
+            text-white rounded-2xl transition-all duration-300
+            backdrop-blur-sm bg-opacity-90 h-full relative"
+            disabled={loadingRoute !== null}
+          >
+            {loadingRoute === '/about' ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-12 h-12 mb-4 border-4 border-white border-t-transparent rounded-full"
+                />
+                <span className="text-xl font-semibold text-center">Loading...</span>
+              </>
+            ) : (
+              <>
+                <FaHeart className="w-12 h-12 mb-4" />
+                <span className="text-xl font-semibold text-center">About</span>
+              </>
+            )}
+          </motion.button>
+
+          <motion.button
+            variants={item}
+            onClick={() => handleNavigation('/support')}
+            whileHover={{ y: -5 }}
+            whileTap={{ scale: 0.98 }}
+            className="flex flex-col items-center p-8 bg-linear-to-br from-teal-500 to-teal-600 
+            text-white rounded-2xl transition-all duration-300
+            backdrop-blur-sm bg-opacity-90 h-full relative"
+            disabled={loadingRoute !== null}
+          >
+            {loadingRoute === '/support' ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-12 h-12 mb-4 border-4 border-white border-t-transparent rounded-full"
+                />
+                <span className="text-xl font-semibold text-center">Loading...</span>
+              </>
+            ) : (
+              <>
+                <FaEnvelope className="w-12 h-12 mb-4" />
+                <span className="text-xl font-semibold text-center">Support</span>
+              </>
+            )}
           </motion.button>
         </motion.div>
       </div>
