@@ -37,10 +37,28 @@ export default function Analytics() {
           invoke<AnalyticsData>('get_analytics'),
           invoke<Settings>('get_settings')
         ]);
-        setData(analyticsRes);
+        
+        // Ensure we have valid data structure
+        setData({
+          daily_revenue: analyticsRes?.daily_revenue || [],
+          top_products: analyticsRes?.top_products || [],
+          product_distribution: analyticsRes?.product_distribution || [],
+          summary: analyticsRes?.summary || { 
+            total_orders: 0, 
+            total_revenue: 0, 
+            average_order_value: 0 
+          }
+        });
         setCurrency(settingsRes?.currency || 'PKR');
       } catch (error) {
-        console.error('Error loading data:', error);
+        console.error('Error loading analytics data:', error);
+        // Set empty data structure on error
+        setData({
+          daily_revenue: [],
+          top_products: [],
+          product_distribution: [],
+          summary: { total_orders: 0, total_revenue: 0, average_order_value: 0 }
+        });
       } finally {
         setLoading(false);
       }
@@ -172,6 +190,20 @@ export default function Analytics() {
           </motion.div>
         </div>
 
+        {/* Empty State Message */}
+        {data.summary.total_orders === 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white/10 backdrop-blur-sm rounded-xl p-8 mb-8 text-center"
+          >
+            <div className="text-white/60 text-lg mb-2">No data available yet</div>
+            <div className="text-white/40">
+              Complete some sales to see analytics and insights
+            </div>
+          </motion.div>
+        )}
+
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           {/* Revenue Trend */}
@@ -182,30 +214,36 @@ export default function Analytics() {
           >
             <h2 className="text-lg sm:text-xl font-bold text-white mb-4">Revenue Trend</h2>
             <div className="h-[250px] sm:h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={data.daily_revenue}>
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0088FE" stopOpacity={0.8} />
-                      <stop offset="95%" stopColor="#0088FE" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
-                  <XAxis dataKey="date" stroke="#ffffff60" />
-                  <YAxis stroke="#ffffff60" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#1f2937', border: 'none' }}
-                    labelStyle={{ color: '#ffffff' }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#0088FE"
-                    fillOpacity={1}
-                    fill="url(#colorRevenue)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              {data.daily_revenue.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={data.daily_revenue}>
+                    <defs>
+                      <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#0088FE" stopOpacity={0.8} />
+                        <stop offset="95%" stopColor="#0088FE" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
+                    <XAxis dataKey="date" stroke="#ffffff60" />
+                    <YAxis stroke="#ffffff60" />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#1f2937', border: 'none' }}
+                      labelStyle={{ color: '#ffffff' }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="revenue"
+                      stroke="#0088FE"
+                      fillOpacity={1}
+                      fill="url(#colorRevenue)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-white/40">No revenue data available</p>
+                </div>
+              )}
             </div>
           </motion.div>
 
@@ -217,18 +255,24 @@ export default function Analytics() {
           >
             <h2 className="text-lg sm:text-xl font-bold text-white mb-4">Top Products</h2>
             <div className="h-[250px] sm:h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.top_products}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
-                  <XAxis dataKey="name" stroke="#ffffff60" />
-                  <YAxis stroke="#ffffff60" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#1f2937', border: 'none' }}
-                    labelStyle={{ color: '#ffffff' }}
-                  />
-                  <Bar dataKey="sales" fill="#00C49F" />
-                </BarChart>
-              </ResponsiveContainer>
+              {data.top_products.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data.top_products}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
+                    <XAxis dataKey="name" stroke="#ffffff60" />
+                    <YAxis stroke="#ffffff60" />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#1f2937', border: 'none' }}
+                      labelStyle={{ color: '#ffffff' }}
+                    />
+                    <Bar dataKey="sales" fill="#00C49F" />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-white/40">No product sales data available</p>
+                </div>
+              )}
             </div>
           </motion.div>
 
@@ -240,35 +284,41 @@ export default function Analytics() {
           >
             <h2 className="text-lg sm:text-xl font-bold text-white mb-4">Product Distribution</h2>
             <div className="h-[250px] sm:h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={data.product_distribution}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, value, percent }) =>
-                      `${name} (${value}) ${(percent * 100).toFixed(0)}%`
-                    }
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {data.product_distribution.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#1f2937',
-                      border: 'none',
-                      color: '#ffffff'
-                    }}
-                    itemStyle={{ color: '#ffffff' }}
-                    labelStyle={{ color: '#ffffff' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {data.product_distribution.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={data.product_distribution}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, value, percent }) =>
+                        `${name} (${value}) ${(percent * 100).toFixed(0)}%`
+                      }
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {data.product_distribution.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#1f2937',
+                        border: 'none',
+                        color: '#ffffff'
+                      }}
+                      itemStyle={{ color: '#ffffff' }}
+                      labelStyle={{ color: '#ffffff' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-white/40">No product distribution data available</p>
+                </div>
+              )}
             </div>
           </motion.div>
 
@@ -280,23 +330,29 @@ export default function Analytics() {
           >
             <h2 className="text-lg sm:text-xl font-bold text-white mb-4">Daily Orders Trend</h2>
             <div className="h-[250px] sm:h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.daily_revenue}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
-                  <XAxis dataKey="date" stroke="#ffffff60" />
-                  <YAxis stroke="#ffffff60" />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: '#1f2937', border: 'none' }}
-                    labelStyle={{ color: '#ffffff' }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="orders"
-                    stroke="#FFBB28"
-                    strokeWidth={2}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+              {data.daily_revenue.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data.daily_revenue}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff20" />
+                    <XAxis dataKey="date" stroke="#ffffff60" />
+                    <YAxis stroke="#ffffff60" />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#1f2937', border: 'none' }}
+                      labelStyle={{ color: '#ffffff' }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="orders"
+                      stroke="#FFBB28"
+                      strokeWidth={2}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-white/40">No orders data available</p>
+                </div>
+              )}
             </div>
           </motion.div>
         </div>

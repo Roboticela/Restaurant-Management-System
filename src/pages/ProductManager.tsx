@@ -1,10 +1,16 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { FaPlus, FaTrash } from 'react-icons/fa';
+import { FaPlus, FaTrash, FaCheck, FaExclamationTriangle } from 'react-icons/fa';
 import { MdArrowBack } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { Product, NewProduct, Settings } from '../types';
+
+interface FormErrors {
+  name?: string;
+  price?: string;
+  unit?: string;
+}
 
 export default function ProductManager() {
   const navigate = useNavigate();
@@ -13,6 +19,13 @@ export default function ProductManager() {
   const [newProduct, setNewProduct] = useState({ name: '', price: '', unit: 'item' });
   const [currencySymbol, setCurrencySymbol] = useState('PKR');
   const [isNavigating, setIsNavigating] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [statusMessage, setStatusMessage] = useState('');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   const handleBackNavigation = () => {
     setIsNavigating(true);
@@ -49,33 +62,127 @@ export default function ProductManager() {
     loadProducts();
   }, []);
 
-  const handleAddProduct = async () => {
-    if (newProduct.name && newProduct.price) {
-      try {
-        await invoke('add_product', {
-          product: {
-            name: newProduct.name,
-            price: Number(newProduct.price),
-            unit: newProduct.unit || 'item'
-          } as NewProduct
-        });
-        setNewProduct({ name: '', price: '', unit: 'item' });
-        setShowAddModal(false);
-        loadProducts();
-      } catch (error) {
-        console.error('Error adding product:', error);
-        alert('Error adding product');
-      }
+  const handleInputChange = (field: string, value: string) => {
+    setNewProduct({ ...newProduct, [field]: value });
+    // Clear error for this field when user starts typing
+    if (errors[field as keyof FormErrors]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: undefined
+      }));
     }
   };
 
-  const handleDeleteProduct = async (id: number) => {
+  const validateForm = (): boolean => {
+    const newErrors: FormErrors = {};
+
+    // Validate name
+    if (!newProduct.name.trim()) {
+      newErrors.name = 'Please enter product name';
+    } else {
+      // Check for duplicate product names (case-insensitive)
+      const isDuplicate = products.some(
+        product => product.name.toLowerCase() === newProduct.name.trim().toLowerCase()
+      );
+      if (isDuplicate) {
+        newErrors.name = 'A product with this name already exists';
+      }
+    }
+
+    // Validate price
+    if (!newProduct.price) {
+      newErrors.price = 'Please enter price';
+    } else {
+      const priceNum = Number(newProduct.price);
+      if (isNaN(priceNum) || priceNum <= 0) {
+        newErrors.price = 'Price must be a positive number';
+      }
+    }
+
+    // Validate unit
+    if (!newProduct.unit.trim()) {
+      newErrors.unit = 'Please enter unit';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleAddProduct = async () => {
+    // Validate form before submission
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitStatus('idle');
+    setStatusMessage('');
+
     try {
-      await invoke('delete_product', { id });
-      loadProducts();
+      await invoke('add_product', {
+        product: {
+          name: newProduct.name.trim(),
+          price: Number(newProduct.price),
+          unit: newProduct.unit.trim() || 'item'
+        } as NewProduct
+      });
+      
+      setNewProduct({ name: '', price: '', unit: 'item' });
+      setErrors({});
+      setShowAddModal(false);
+      await loadProducts();
+      
+      setSubmitStatus('success');
+      setStatusMessage('Product added successfully!');
+      
+      setTimeout(() => {
+        setSubmitStatus('idle');
+      }, 3000);
+    } catch (error) {
+      console.error('Error adding product:', error);
+      setSubmitStatus('error');
+      setStatusMessage(error as string || 'Failed to add product. Please try again.');
+      
+      setTimeout(() => {
+        setSubmitStatus('idle');
+      }, 3000);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openDeleteConfirmation = (product: Product) => {
+    setProductToDelete(product);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteProduct = async () => {
+    if (!productToDelete) return;
+    
+    setDeletingId(productToDelete.id);
+    setShowDeleteModal(false);
+    
+    try {
+      await invoke('delete_product', { id: productToDelete.id });
+      await loadProducts();
+      
+      setSubmitStatus('success');
+      setStatusMessage('Product deleted successfully!');
+      
+      setTimeout(() => {
+        setSubmitStatus('idle');
+      }, 3000);
     } catch (error) {
       console.error('Error deleting product:', error);
-      alert('Error deleting product');
+      setSubmitStatus('error');
+      setStatusMessage(error as string || 'Failed to delete product. Please try again.');
+      
+      setTimeout(() => {
+        setSubmitStatus('idle');
+      }, 3000);
+    } finally {
+      setDeletingId(null);
+      setProductToDelete(null);
     }
   };
 
@@ -172,10 +279,19 @@ export default function ProductManager() {
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => handleDeleteProduct(product.id)}
-                  className="text-red-400 hover:text-red-300"
+                  onClick={() => openDeleteConfirmation(product)}
+                  className="text-red-400 hover:text-red-300 disabled:opacity-50"
+                  disabled={deletingId === product.id}
                 >
-                  <FaTrash />
+                  {deletingId === product.id ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full"
+                    />
+                  ) : (
+                    <FaTrash />
+                  )}
                 </motion.button>
               </div>
               <div className="sm:hidden mb-1">
@@ -195,10 +311,19 @@ export default function ProductManager() {
                 <motion.button
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={() => handleDeleteProduct(product.id)}
-                  className="text-red-400 hover:text-red-300"
+                  onClick={() => openDeleteConfirmation(product)}
+                  className="text-red-400 hover:text-red-300 disabled:opacity-50"
+                  disabled={deletingId === product.id}
                 >
-                  <FaTrash />
+                  {deletingId === product.id ? (
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                      className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full"
+                    />
+                  ) : (
+                    <FaTrash />
+                  )}
                 </motion.button>
               </div>
             </motion.div>
@@ -214,7 +339,7 @@ export default function ProductManager() {
 
       {/* Add Product Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -228,10 +353,19 @@ export default function ProductManager() {
                 <input
                   type="text"
                   value={newProduct.name}
-                  onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                  className="w-full px-4 py-2 rounded-lg bg-slate-700 text-white"
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  className={`w-full px-4 py-2 rounded-lg bg-slate-700 text-white border 
+                    focus:outline-none transition-colors ${
+                      errors.name 
+                        ? 'border-red-500 focus:border-red-400' 
+                        : 'border-transparent focus:border-teal-400'
+                    }`}
                   placeholder="Enter product name"
+                  disabled={isSubmitting}
                 />
+                {errors.name && (
+                  <p className="text-red-400 text-sm mt-1">{errors.name}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -242,11 +376,21 @@ export default function ProductManager() {
                   <input
                     type="number"
                     value={newProduct.price}
-                    onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-                    className="w-full px-4 py-2 rounded-lg bg-slate-700 text-white"
+                    onChange={(e) => handleInputChange('price', e.target.value)}
+                    className={`w-full px-4 py-2 rounded-lg bg-slate-700 text-white border 
+                      focus:outline-none transition-colors ${
+                        errors.price 
+                          ? 'border-red-500 focus:border-red-400' 
+                          : 'border-transparent focus:border-teal-400'
+                      }`}
                     placeholder={`Enter price per ${newProduct.unit}`}
                     step="0.01"
+                    min="0"
+                    disabled={isSubmitting}
                   />
+                  {errors.price && (
+                    <p className="text-red-400 text-sm mt-1">{errors.price}</p>
+                  )}
                 </div>
 
                 <div>
@@ -254,30 +398,149 @@ export default function ProductManager() {
                   <input
                     type="text"
                     value={newProduct.unit}
-                    onChange={(e) => setNewProduct({ ...newProduct, unit: e.target.value })}
-                    className="w-full px-4 py-2 rounded-lg bg-slate-700 text-white"
+                    onChange={(e) => handleInputChange('unit', e.target.value)}
+                    className={`w-full px-4 py-2 rounded-lg bg-slate-700 text-white border 
+                      focus:outline-none transition-colors ${
+                        errors.unit 
+                          ? 'border-red-500 focus:border-red-400' 
+                          : 'border-transparent focus:border-teal-400'
+                      }`}
                     placeholder="e.g., piece, kg, plate"
+                    disabled={isSubmitting}
                   />
+                  {errors.unit && (
+                    <p className="text-red-400 text-sm mt-1">{errors.unit}</p>
+                  )}
                 </div>
               </div>
 
               <div className="flex gap-4 mt-6">
                 <button
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1 px-4 py-2 rounded-lg bg-slate-700 text-white hover:bg-slate-600 transition-colors"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setErrors({});
+                    setNewProduct({ name: '', price: '', unit: 'item' });
+                  }}
+                  className="flex-1 px-4 py-2 rounded-lg bg-slate-700 text-white hover:bg-slate-600 
+                    transition-colors disabled:opacity-50"
+                  disabled={isSubmitting}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleAddProduct}
-                  className="flex-1 px-4 py-2 rounded-lg bg-teal-500 text-white hover:bg-teal-400 transition-colors"
+                  className="flex-1 px-4 py-2 rounded-lg bg-teal-500 text-white hover:bg-teal-400 
+                    transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  disabled={isSubmitting}
                 >
-                  Add Product
+                  {isSubmitting ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                      />
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <FaPlus />
+                      Add Product
+                    </>
+                  )}
                 </button>
               </div>
             </div>
           </motion.div>
         </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && productToDelete && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-slate-800 rounded-xl p-6 w-full max-w-md border-2 border-red-500/30"
+          >
+            {/* Warning Icon */}
+            <div className="flex justify-center mb-4">
+              <div className="bg-red-500/20 rounded-full p-4">
+                <FaExclamationTriangle className="text-red-400 text-4xl" />
+              </div>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-xl sm:text-2xl font-bold text-white text-center mb-3">
+              Delete Product?
+            </h2>
+
+            {/* Message */}
+            <p className="text-gray-300 text-center mb-2">
+              Are you sure you want to delete
+            </p>
+            <p className="text-white font-semibold text-center text-lg mb-1">
+              {productToDelete.name}
+            </p>
+            <p className="text-gray-400 text-center text-sm mb-6">
+              This action cannot be undone.
+            </p>
+
+            {/* Buttons */}
+            <div className="flex gap-4">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setProductToDelete(null);
+                }}
+                className="flex-1 px-6 py-3 rounded-lg bg-slate-700 text-white hover:bg-slate-600 
+                  transition-colors font-semibold"
+              >
+                No, Cancel
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleDeleteProduct}
+                className="flex-1 px-6 py-3 rounded-lg bg-red-500 text-white hover:bg-red-600 
+                  transition-colors font-semibold flex items-center justify-center gap-2"
+              >
+                <FaTrash />
+                Yes, Delete
+              </motion.button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Success Message */}
+      {submitStatus === 'success' && (
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 50 }}
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-teal-500 text-white px-6 py-3 
+            rounded-xl flex items-center gap-2 z-50"
+        >
+          <FaCheck className="text-xl" />
+          {statusMessage}
+        </motion.div>
+      )}
+
+      {/* Error Message */}
+      {submitStatus === 'error' && (
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 50 }}
+          className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-red-500 text-white px-6 py-3 
+            rounded-xl flex items-center gap-2 max-w-md z-50"
+        >
+          <FaExclamationTriangle className="text-xl" />
+          <span>{statusMessage}</span>
+        </motion.div>
       )}
     </div>
   );

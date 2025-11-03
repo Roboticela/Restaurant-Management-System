@@ -5,6 +5,7 @@ import { MdArrowBack } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import CompanyLogo from '../assets/CompanyLogo.png';
+import packageJson from '../../package.json';
 
 export default function About() {
   const navigate = useNavigate();
@@ -246,10 +247,10 @@ export default function About() {
           {/* Version Info */}
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8 text-center">
             <p className="text-gray-300">
-              <strong className="text-white">Version:</strong> 0.1.0
+              <strong className="text-white">Version:</strong> {packageJson.version}
             </p>
             <p className="text-gray-400 text-sm mt-2">
-              © 2025 Roboticela. All rights reserved.
+              © {new Date().getFullYear()} Roboticela. All rights reserved.
             </p>
           </div>
 

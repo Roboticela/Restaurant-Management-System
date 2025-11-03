@@ -349,16 +349,16 @@ pub fn delete_transaction(db_path: &PathBuf, id: i64) -> Result<()> {
 pub fn get_analytics(db_path: &PathBuf) -> Result<AnalyticsData> {
     let conn = Connection::open(db_path)?;
     
-    // Get daily revenue
+    // Get daily revenue (last 30 days, oldest first for proper chart display)
     let mut daily_stmt = conn.prepare(
-        "SELECT date, SUM(total_amount) as revenue, COUNT(*) as orders 
+        "SELECT date, COALESCE(SUM(total_amount), 0.0) as revenue, COUNT(*) as orders 
          FROM sales 
          GROUP BY date 
-         ORDER BY date DESC 
+         ORDER BY date ASC 
          LIMIT 30"
     )?;
     
-    let daily_revenue: Vec<DailyRevenue> = daily_stmt
+    let mut daily_revenue: Vec<DailyRevenue> = daily_stmt
         .query_map([], |row| {
             Ok(DailyRevenue {
                 date: row.get(0)?,
@@ -368,9 +368,14 @@ pub fn get_analytics(db_path: &PathBuf) -> Result<AnalyticsData> {
         })?
         .collect::<Result<Vec<_>>>()?;
     
+    // Reverse to get most recent dates last
+    daily_revenue.reverse();
+    
     // Get top products
     let mut top_stmt = conn.prepare(
-        "SELECT product_name, SUM(quantity) as total_sales, SUM(price * quantity) as revenue 
+        "SELECT product_name, 
+                CAST(SUM(quantity) AS INTEGER) as total_sales, 
+                COALESCE(SUM(price * quantity), 0.0) as revenue 
          FROM sale_items 
          GROUP BY product_name 
          ORDER BY total_sales DESC 
@@ -389,7 +394,7 @@ pub fn get_analytics(db_path: &PathBuf) -> Result<AnalyticsData> {
     
     // Get product distribution
     let mut dist_stmt = conn.prepare(
-        "SELECT product_name, SUM(quantity) as total 
+        "SELECT product_name, CAST(SUM(quantity) AS INTEGER) as total 
          FROM sale_items 
          GROUP BY product_name 
          ORDER BY total DESC 
@@ -407,12 +412,13 @@ pub fn get_analytics(db_path: &PathBuf) -> Result<AnalyticsData> {
     
     // Get summary
     let mut summary_stmt = conn.prepare(
-        "SELECT COUNT(*) as total_orders, SUM(total_amount) as total_revenue 
+        "SELECT COUNT(*) as total_orders, 
+                COALESCE(SUM(total_amount), 0.0) as total_revenue 
          FROM sales"
     )?;
     
     let (total_orders, total_revenue): (i64, f64) = summary_stmt.query_row([], |row| {
-        Ok((row.get(0)?, row.get(1).unwrap_or(0.0)))
+        Ok((row.get(0)?, row.get(1)?))
     })?;
     
     let average_order_value = if total_orders > 0 {
