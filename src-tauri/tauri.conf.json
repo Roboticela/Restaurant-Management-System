@@ -15,7 +15,9 @@
         "title": "Restaurant Management System",
         "width": 1200,
         "height": 800,
-        "center": true
+        "center": true,
+        "decorations": true,
+        "fullscreen": false
       }
     ],
     "security": {

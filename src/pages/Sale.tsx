@@ -4,6 +4,8 @@ import { MdArrowBack, MdShoppingCart, MdCheckCircle, MdLocalPrintshop, MdFileDow
 import { FaPlus } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
+import { save } from '@tauri-apps/plugin-dialog';
+import { writeFile } from '@tauri-apps/plugin-fs';
 import { Product, Settings, CartItem, Sale as SaleType } from '../types';
 import Receipt from '../components/Receipt';
 import jsPDF from 'jspdf';
@@ -34,6 +36,8 @@ export default function Sale() {
   const [isSelling, setIsSelling] = useState(false);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [showPDFSuccessDialog, setShowPDFSuccessDialog] = useState(false);
+  const [savedPDFPath, setSavedPDFPath] = useState<string>('');
 
   const handleBackNavigation = () => {
     setIsNavigating(true);
@@ -159,8 +163,14 @@ export default function Sale() {
     setIsPrinting(true);
     // Small delay to show the loading state
     setTimeout(() => {
-      window.print();
-      setIsPrinting(false);
+      try {
+        window.print();
+      } catch (error) {
+        console.error('Print error:', error);
+        alert('Error opening print dialog');
+      } finally {
+        setIsPrinting(false);
+      }
     }, 500);
   };
 
@@ -170,8 +180,9 @@ export default function Sale() {
       return;
     }
 
+    setIsDownloadingPDF(true);
+
     try {
-      setIsDownloadingPDF(true);
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -260,8 +271,27 @@ export default function Sale() {
         pdf.text(footerLines, pageWidth / 2, yPos, { align: 'center' });
       }
 
-      const filename = `receipt-${receiptData.receiptNumber}.pdf`;
-      pdf.save(filename);
+      // Get PDF as array buffer
+      const pdfBlob = pdf.output('arraybuffer');
+      const pdfArray = new Uint8Array(pdfBlob);
+
+      // Open save dialog
+      const defaultFilename = `receipt-${receiptData.receiptNumber}.pdf`;
+      const filePath = await save({
+        defaultPath: defaultFilename,
+        filters: [{
+          name: 'PDF',
+          extensions: ['pdf']
+        }]
+      });
+
+      if (filePath) {
+        // Write file using Tauri's file system
+        await writeFile(filePath, pdfArray);
+        console.log('PDF saved successfully:', filePath);
+        setSavedPDFPath(filePath);
+        setShowPDFSuccessDialog(true);
+      }
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert(`Error generating PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -277,7 +307,7 @@ export default function Sale() {
   return (
     <div className="min-h-screen bg-slate-100 dark:bg-slate-900 transition-colors duration-300">
       {/* Theme Toggle */}
-      <div className="absolute top-4 right-4 z-50">
+      <div className="absolute safe-top safe-right z-50">
         <ThemeToggle />
       </div>
       
@@ -607,6 +637,71 @@ export default function Sale() {
               >
                 <MdShoppingCart className="text-xl" />
                 Start New Sale
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* PDF Success Dialog */}
+      {showPDFSuccessDialog && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"
+          onClick={() => setShowPDFSuccessDialog(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.8, opacity: 0 }}
+            className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full transition-colors duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ 
+                  type: "spring",
+                  stiffness: 300,
+                  damping: 20
+                }}
+                className="mx-auto mb-4"
+              >
+                <MdCheckCircle className="w-16 h-16 text-green-500 mx-auto" />
+              </motion.div>
+
+              <motion.h3
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="text-2xl font-bold text-slate-900 dark:text-white mb-2"
+              >
+                PDF Saved Successfully!
+              </motion.h3>
+
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="text-slate-600 dark:text-slate-300 mb-6 break-all text-sm"
+              >
+                {savedPDFPath}
+              </motion.p>
+
+              <motion.button
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowPDFSuccessDialog(false)}
+                className="w-full py-3 px-4 bg-green-500 
+                  text-white rounded-xl font-semibold 
+                  transition-all duration-300 hover:bg-green-600"
+              >
+                OK
               </motion.button>
             </div>
           </motion.div>

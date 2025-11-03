@@ -51,7 +51,7 @@ export default function About() {
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-purple-100 to-slate-100 
       dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 transition-colors duration-300">
       {/* Theme Toggle */}
-      <div className="absolute top-4 right-4 z-50">
+      <div className="absolute safe-top safe-right z-50">
         <ThemeToggle />
       </div>
       <div className="max-w-7xl mx-auto px-4 py-12 md:py-24">

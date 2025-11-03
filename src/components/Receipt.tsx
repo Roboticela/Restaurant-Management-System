@@ -93,25 +93,54 @@ const Receipt = forwardRef<HTMLDivElement, ReceiptProps>(
         {/* Print styles */}
         <style dangerouslySetInnerHTML={{__html: `
           @media print {
+            @page {
+              size: 80mm auto;
+              margin: 0;
+            }
+            
+            * {
+              box-sizing: border-box;
+            }
+            
+            html, body {
+              width: 80mm !important;
+              height: auto !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
+              overflow: visible !important;
+            }
+            
+            /* Hide absolutely everything first */
             body * {
-              visibility: hidden;
+              display: none !important;
             }
-            .receipt-container,
-            .receipt-container * {
-              visibility: visible;
-            }
+            
+            /* Only show receipt container and its children */
             .receipt-container {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 80mm;
+              display: block !important;
+              position: static !important;
+              visibility: visible !important;
+              width: 80mm !important;
+              height: auto !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
             }
+            
+            .receipt-container * {
+              display: revert !important;
+              visibility: visible !important;
+            }
+            
             .receipt-content {
               box-shadow: none !important;
               border-radius: 0 !important;
               max-width: 80mm !important;
+              width: 80mm !important;
               margin: 0 !important;
-              padding: 10mm !important;
+              padding: 5mm !important;
+              background: white !important;
             }
           }
         `}} />

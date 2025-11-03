@@ -2,5 +2,12 @@
     <!-- Base application theme. -->
     <style name="Theme.restaurant_management_system" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
+        <!-- Edge-to-edge support -->
+        <item name="android:statusBarColor" tools:ignore="NewApi">@android:color/transparent</item>
+        <item name="android:navigationBarColor" tools:ignore="NewApi">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar" tools:ignore="NewApi">true</item>
+        <item name="android:windowLightNavigationBar" tools:ignore="NewApi">true</item>
+        <item name="android:enforceStatusBarContrast" tools:ignore="NewApi">false</item>
+        <item name="android:enforceNavigationBarContrast" tools:ignore="NewApi">false</item>
     </style>
 </resources>

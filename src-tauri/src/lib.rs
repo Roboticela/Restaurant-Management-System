@@ -2,8 +2,13 @@ mod database;
 mod email;
 
 use database::*;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
+
+#[cfg(not(target_os = "android"))]
+use tauri::Manager;
+#[cfg(not(target_os = "android"))]
 use std::fs;
+#[cfg(not(target_os = "android"))]
 use std::path::PathBuf;
 
 // Load environment variables at startup
@@ -93,14 +98,16 @@ fn send_support_email(
     email::send_support_email(name, email, subject, message)
 }
 
-// Helper function to get window state file path
+// Helper function to get window state file path (desktop only)
+#[cfg(not(target_os = "android"))]
 fn get_window_state_path(app: &AppHandle) -> Result<PathBuf, String> {
     let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
     Ok(app_dir.join("window_state.json"))
 }
 
-// Helper function to save window state
+// Helper function to save window state (desktop only)
+#[cfg(not(target_os = "android"))]
 fn save_window_state(app: &AppHandle, is_maximized: bool) -> Result<(), String> {
     let path = get_window_state_path(app)?;
     let state = serde_json::json!({
@@ -110,7 +117,8 @@ fn save_window_state(app: &AppHandle, is_maximized: bool) -> Result<(), String> 
         .map_err(|e| e.to_string())
 }
 
-// Helper function to load window state
+// Helper function to load window state (desktop only)
+#[cfg(not(target_os = "android"))]
 fn load_window_state(app: &AppHandle) -> Result<bool, String> {
     let path = get_window_state_path(app)?;
     if path.exists() {
@@ -135,26 +143,29 @@ pub fn run() {
             let db_path = database::get_db_path(&app.handle())?;
             database::initialize_database(&db_path).map_err(|e| e.to_string())?;
             
-            // Setup window state management
-            let window = app.get_webview_window("main").unwrap();
-            
-            // Restore maximize state
-            let is_maximized = load_window_state(&app.handle()).unwrap_or(false);
-            if is_maximized {
-                let _ = window.maximize();
-            }
-            
-            // Listen for window resize events to save maximize state
-            let window_clone = window.clone();
-            let app_handle = app.handle().clone();
-            window.on_window_event(move |event| {
-                if let tauri::WindowEvent::Resized(_) = event {
-                    // Check if window is maximized
-                    if let Ok(is_maximized) = window_clone.is_maximized() {
-                        let _ = save_window_state(&app_handle, is_maximized);
-                    }
+            // Setup window state management (desktop only)
+            #[cfg(not(target_os = "android"))]
+            {
+                let window = app.get_webview_window("main").unwrap();
+                
+                // Restore maximize state
+                let is_maximized = load_window_state(&app.handle()).unwrap_or(false);
+                if is_maximized {
+                    let _ = window.maximize();
                 }
-            });
+                
+                // Listen for window resize events to save maximize state
+                let window_clone = window.clone();
+                let app_handle = app.handle().clone();
+                window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::Resized(_) = event {
+                        // Check if window is maximized
+                        if let Ok(is_maximized) = window_clone.is_maximized() {
+                            let _ = save_window_state(&app_handle, is_maximized);
+                        }
+                    }
+                });
+            }
             
             Ok(())
         })
