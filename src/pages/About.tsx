@@ -48,7 +48,7 @@ export default function About() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-purple-100 to-slate-100 
+    <div className="min-h-screen bg-linear-to-br from-slate-100 via-purple-100 to-slate-100 
       dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 transition-colors duration-300">
       {/* Theme Toggle */}
       <div className="absolute safe-top safe-right z-50">
@@ -72,7 +72,7 @@ export default function About() {
           </motion.div>
           <motion.h1
             className="text-3xl md:text-5xl font-bold text-transparent bg-clip-text 
-              bg-gradient-to-r from-teal-600 to-purple-600 dark:from-teal-400 dark:to-purple-400 py-2"
+              bg-linear-to-r from-teal-600 to-purple-600 dark:from-teal-400 dark:to-purple-400 py-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
