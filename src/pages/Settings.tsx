@@ -7,6 +7,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { readFile, writeFile } from '@tauri-apps/plugin-fs';
 import { Settings as SettingsType } from '../types';
+import ThemeToggle from '../components/ThemeToggle';
 
 interface FormErrors {
   restaurant_name?: string;
@@ -213,7 +214,8 @@ const CurrencyDropdown = ({ value, onChange }: CurrencyDropdownProps) => {
     <div className="relative" ref={dropdownRef}>
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full px-4 py-2 rounded-lg bg-white/5 border border-gray-600 text-white 
+        className="w-full px-4 py-2 rounded-lg bg-white/50 dark:bg-white/5 border 
+          border-slate-300 dark:border-gray-600 text-slate-900 dark:text-white 
           cursor-pointer hover:border-teal-400 transition-all duration-200 flex items-center justify-between"
       >
         <span>
@@ -225,14 +227,15 @@ const CurrencyDropdown = ({ value, onChange }: CurrencyDropdownProps) => {
       </div>
 
       {isOpen && (
-        <div className="absolute z-50 w-full mt-2 bg-slate-800 border border-gray-600 rounded-lg">
+        <div className="absolute z-50 w-full mt-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-gray-600 rounded-lg">
           <div className="p-2">
             <input
               type="text"
               placeholder="Search currency..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 bg-white/5 border border-gray-600 rounded-md text-white 
+              className="w-full px-3 py-2 bg-white/50 dark:bg-white/5 border border-slate-300 dark:border-gray-600 
+                rounded-md text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-gray-400
                 focus:outline-none focus:border-teal-400 transition-colors"
               onClick={(e) => e.stopPropagation()}
             />
@@ -247,17 +250,19 @@ const CurrencyDropdown = ({ value, onChange }: CurrencyDropdownProps) => {
                   setSearchTerm('');
                 }}
                 className={`px-4 py-2 cursor-pointer flex items-center justify-between
-                  ${value === currency.code ? 'bg-teal-500/20 text-teal-400' : 'text-white hover:bg-white/5'}
+                  ${value === currency.code 
+                    ? 'bg-teal-500/20 text-teal-600 dark:text-teal-400' 
+                    : 'text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-white/5'}
                   transition-colors duration-200`}
               >
                 <span>{currency.name}</span>
-                <span className="text-gray-400">
+                <span className="text-slate-500 dark:text-gray-400">
                   {currency.code} {currency.symbol}
                 </span>
               </div>
             ))}
             {filteredOptions.length === 0 && (
-              <div className="px-4 py-2 text-gray-400 text-center">
+              <div className="px-4 py-2 text-slate-500 dark:text-gray-400 text-center">
                 No currencies found
               </div>
             )}
@@ -540,7 +545,13 @@ export default function Settings() {
   }, [loadSettings]);
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-linear-to-br from-slate-100 via-purple-100 to-slate-100 
+      dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 transition-colors duration-300">
+      {/* Theme Toggle */}
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+      
       <div className="max-w-7xl mx-auto px-4 py-12 md:py-24">
         {/* Header */}
         <motion.div
@@ -575,14 +586,14 @@ export default function Settings() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8 mb-8">
+          <div className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8 mb-8 transition-colors duration-300">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Basic Information */}
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-white mb-6">Basic Information</h2>
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-6">Basic Information</h2>
 
                 <div>
-                  <label className="block text-gray-300 mb-2">Restaurant Logo</label>
+                  <label className="block text-slate-700 dark:text-gray-300 mb-2">Restaurant Logo</label>
                   <div className="space-y-4">
                     {logoPreview && (
                       <div className="relative w-32 h-32 mx-auto">
@@ -611,9 +622,10 @@ export default function Settings() {
                         type="button"
                         onClick={handleLogoChange}
                         disabled={isUploadingLogo}
-                        className="w-full flex flex-col items-center px-4 py-6 bg-white/5 text-gray-300
-                        rounded-lg border-2 border-gray-600 border-dashed cursor-pointer
-                        hover:border-teal-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full flex flex-col items-center px-4 py-6 bg-white/30 dark:bg-white/5 
+                        text-slate-600 dark:text-gray-300 rounded-lg border-2 border-slate-300 dark:border-gray-600 
+                        border-dashed cursor-pointer hover:border-teal-400 transition-colors disabled:opacity-50 
+                        disabled:cursor-not-allowed"
                       >
                         {isUploadingLogo ? (
                           <>
@@ -637,14 +649,14 @@ export default function Settings() {
                         )}
                       </button>
                     </div>
-                    <p className="text-xs text-gray-400 text-center">
+                    <p className="text-xs text-slate-500 dark:text-gray-400 text-center">
                       Supported formats: PNG, JPG, GIF (max. 2MB)
                     </p>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-gray-300 mb-2">
+                  <label className="block text-slate-700 dark:text-gray-300 mb-2">
                     Restaurant Name <span className="text-red-400">*</span>
                   </label>
                   <input
@@ -652,11 +664,11 @@ export default function Settings() {
                     name="restaurant_name"
                     value={settings.restaurant_name}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 rounded-lg bg-white/5 border text-white 
-                      focus:outline-none transition-colors ${
+                    className={`w-full px-4 py-2 rounded-lg bg-white/50 dark:bg-white/5 border 
+                      text-slate-900 dark:text-white focus:outline-none transition-colors ${
                         errors.restaurant_name 
                           ? 'border-red-500 focus:border-red-500' 
-                          : 'border-gray-600 focus:border-teal-400'
+                          : 'border-slate-300 dark:border-gray-600 focus:border-teal-400'
                       }`}
                   />
                   {errors.restaurant_name && (
@@ -668,29 +680,30 @@ export default function Settings() {
                 </div>
 
                 <div>
-                  <label className="block text-gray-300 mb-2">Address</label>
+                  <label className="block text-slate-700 dark:text-gray-300 mb-2">Address</label>
                   <textarea
                     name="address"
                     value={settings.address}
                     onChange={handleChange}
                     rows={3}
-                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-gray-600 text-white 
+                    className="w-full px-4 py-2 rounded-lg bg-white/50 dark:bg-white/5 border 
+                      border-slate-300 dark:border-gray-600 text-slate-900 dark:text-white 
                       focus:outline-none focus:border-teal-400 transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-gray-300 mb-2">Phone</label>
+                  <label className="block text-slate-700 dark:text-gray-300 mb-2">Phone</label>
                   <input
                     type="tel"
                     name="phone"
                     value={settings.phone}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 rounded-lg bg-white/5 border text-white 
-                      focus:outline-none transition-colors ${
+                    className={`w-full px-4 py-2 rounded-lg bg-white/50 dark:bg-white/5 border 
+                      text-slate-900 dark:text-white focus:outline-none transition-colors ${
                         errors.phone 
                           ? 'border-red-500 focus:border-red-500' 
-                          : 'border-gray-600 focus:border-teal-400'
+                          : 'border-slate-300 dark:border-gray-600 focus:border-teal-400'
                       }`}
                   />
                   {errors.phone && (
@@ -702,17 +715,17 @@ export default function Settings() {
                 </div>
 
                 <div>
-                  <label className="block text-gray-300 mb-2">Email</label>
+                  <label className="block text-slate-700 dark:text-gray-300 mb-2">Email</label>
                   <input
                     type="email"
                     name="email"
                     value={settings.email}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 rounded-lg bg-white/5 border text-white 
-                      focus:outline-none transition-colors ${
+                    className={`w-full px-4 py-2 rounded-lg bg-white/50 dark:bg-white/5 border 
+                      text-slate-900 dark:text-white focus:outline-none transition-colors ${
                         errors.email 
                           ? 'border-red-500 focus:border-red-500' 
-                          : 'border-gray-600 focus:border-teal-400'
+                          : 'border-slate-300 dark:border-gray-600 focus:border-teal-400'
                       }`}
                   />
                   {errors.email && (
@@ -726,10 +739,10 @@ export default function Settings() {
 
               {/* Business Settings */}
               <div className="space-y-6">
-                <h2 className="text-xl font-semibold text-white mb-6">Business Settings</h2>
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-6">Business Settings</h2>
 
                 <div>
-                  <label className="block text-gray-300 mb-2">Tax Rate (%)</label>
+                  <label className="block text-slate-700 dark:text-gray-300 mb-2">Tax Rate (%)</label>
                   <input
                     type="number"
                     name="tax_rate"
@@ -738,11 +751,11 @@ export default function Settings() {
                     step="0.01"
                     min="0"
                     max="100"
-                    className={`w-full px-4 py-2 rounded-lg bg-white/5 border text-white 
-                      focus:outline-none transition-colors ${
+                    className={`w-full px-4 py-2 rounded-lg bg-white/50 dark:bg-white/5 border 
+                      text-slate-900 dark:text-white focus:outline-none transition-colors ${
                         errors.tax_rate 
                           ? 'border-red-500 focus:border-red-500' 
-                          : 'border-gray-600 focus:border-teal-400'
+                          : 'border-slate-300 dark:border-gray-600 focus:border-teal-400'
                       }`}
                   />
                   {errors.tax_rate && (
@@ -754,7 +767,7 @@ export default function Settings() {
                 </div>
 
                 <div>
-                  <label className="block text-gray-300 mb-2">Currency</label>
+                  <label className="block text-slate-700 dark:text-gray-300 mb-2">Currency</label>
                   <CurrencyDropdown
                     value={settings.currency || 'PKR'}
                     onChange={(value) => setSettings(prev => ({ ...prev, currency: value }))}
@@ -762,17 +775,17 @@ export default function Settings() {
                 </div>
 
                 <div>
-                  <label className="block text-gray-300 mb-2">Opening Time</label>
+                  <label className="block text-slate-700 dark:text-gray-300 mb-2">Opening Time</label>
                   <input
                     type="time"
                     name="opening_time"
                     value={settings.opening_time}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 rounded-lg bg-white/5 border text-white 
-                      focus:outline-none transition-colors ${
+                    className={`w-full px-4 py-2 rounded-lg bg-white/50 dark:bg-white/5 border 
+                      text-slate-900 dark:text-white focus:outline-none transition-colors ${
                         errors.opening_time 
                           ? 'border-red-500 focus:border-red-500' 
-                          : 'border-gray-600 focus:border-teal-400'
+                          : 'border-slate-300 dark:border-gray-600 focus:border-teal-400'
                       }`}
                   />
                   {errors.opening_time && (
@@ -784,17 +797,17 @@ export default function Settings() {
                 </div>
 
                 <div>
-                  <label className="block text-gray-300 mb-2">Closing Time</label>
+                  <label className="block text-slate-700 dark:text-gray-300 mb-2">Closing Time</label>
                   <input
                     type="time"
                     name="closing_time"
                     value={settings.closing_time}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 rounded-lg bg-white/5 border text-white 
-                      focus:outline-none transition-colors ${
+                    className={`w-full px-4 py-2 rounded-lg bg-white/50 dark:bg-white/5 border 
+                      text-slate-900 dark:text-white focus:outline-none transition-colors ${
                         errors.closing_time 
                           ? 'border-red-500 focus:border-red-500' 
-                          : 'border-gray-600 focus:border-teal-400'
+                          : 'border-slate-300 dark:border-gray-600 focus:border-teal-400'
                       }`}
                   />
                   {errors.closing_time && (
@@ -806,14 +819,16 @@ export default function Settings() {
                 </div>
 
                 <div>
-                  <label className="block text-gray-300 mb-2">Receipt Footer Message</label>
+                  <label className="block text-slate-700 dark:text-gray-300 mb-2">Receipt Footer Message</label>
                   <textarea
                     name="receipt_footer"
                     value={settings.receipt_footer}
                     onChange={handleChange}
                     rows={3}
-                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-gray-600 text-white 
-                      focus:outline-none focus:border-teal-400 transition-colors"
+                    className="w-full px-4 py-2 rounded-lg bg-white/50 dark:bg-white/5 border 
+                      border-slate-300 dark:border-gray-600 text-slate-900 dark:text-white 
+                      focus:outline-none focus:border-teal-400 transition-colors
+                      placeholder:text-slate-400 dark:placeholder:text-gray-400"
                     placeholder="Thank you for dining with us!"
                   />
                 </div>

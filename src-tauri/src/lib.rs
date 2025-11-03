@@ -2,7 +2,9 @@ mod database;
 mod email;
 
 use database::*;
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
+use std::fs;
+use std::path::PathBuf;
 
 // Load environment variables at startup
 fn load_env() {
@@ -91,6 +93,35 @@ fn send_support_email(
     email::send_support_email(name, email, subject, message)
 }
 
+// Helper function to get window state file path
+fn get_window_state_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+    fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
+    Ok(app_dir.join("window_state.json"))
+}
+
+// Helper function to save window state
+fn save_window_state(app: &AppHandle, is_maximized: bool) -> Result<(), String> {
+    let path = get_window_state_path(app)?;
+    let state = serde_json::json!({
+        "is_maximized": is_maximized
+    });
+    fs::write(path, serde_json::to_string_pretty(&state).unwrap())
+        .map_err(|e| e.to_string())
+}
+
+// Helper function to load window state
+fn load_window_state(app: &AppHandle) -> Result<bool, String> {
+    let path = get_window_state_path(app)?;
+    if path.exists() {
+        let content = fs::read_to_string(path).map_err(|e| e.to_string())?;
+        let state: serde_json::Value = serde_json::from_str(&content).map_err(|e| e.to_string())?;
+        Ok(state.get("is_maximized").and_then(|v| v.as_bool()).unwrap_or(false))
+    } else {
+        Ok(false)
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     // Load environment variables
@@ -103,6 +134,28 @@ pub fn run() {
         .setup(|app| {
             let db_path = database::get_db_path(&app.handle())?;
             database::initialize_database(&db_path).map_err(|e| e.to_string())?;
+            
+            // Setup window state management
+            let window = app.get_webview_window("main").unwrap();
+            
+            // Restore maximize state
+            let is_maximized = load_window_state(&app.handle()).unwrap_or(false);
+            if is_maximized {
+                let _ = window.maximize();
+            }
+            
+            // Listen for window resize events to save maximize state
+            let window_clone = window.clone();
+            let app_handle = app.handle().clone();
+            window.on_window_event(move |event| {
+                if let tauri::WindowEvent::Resized(_) = event {
+                    // Check if window is maximized
+                    if let Ok(is_maximized) = window_clone.is_maximized() {
+                        let _ = save_window_state(&app_handle, is_maximized);
+                    }
+                }
+            });
+            
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

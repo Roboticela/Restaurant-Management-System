@@ -5,6 +5,8 @@
   "windows": ["main"],
   "permissions": [
     "core:default",
+    "core:window:allow-is-maximized",
+    "core:window:allow-maximize",
     "opener:default",
     "dialog:default",
     "dialog:allow-open",

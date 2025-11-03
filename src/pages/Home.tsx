@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import { Settings } from '../types';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function Home() {
   const container = {
@@ -75,7 +76,13 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-linear-to-br from-slate-100 via-purple-100 to-slate-100 
+      dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 transition-colors duration-300">
+      {/* Theme Toggle */}
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+      
       <div className="max-w-7xl mx-auto px-4 py-12 md:py-24">
         {/* Header */}
         <motion.div
@@ -89,7 +96,7 @@ export default function Home() {
             animate={iconAnimation.animate}
             whileHover={{ rotate: 360 }}
             transition={{ duration: 0.6 }}
-            className="bg-white/10 backdrop-blur-sm rounded-full p-6 w-fit mx-auto mb-6"
+            className="bg-white/20 dark:bg-white/10 backdrop-blur-sm rounded-full p-6 w-fit mx-auto mb-6"
           >
             {logo ? (
               <img
@@ -98,11 +105,12 @@ export default function Home() {
                 className="w-16 h-16 md:w-20 md:h-20 object-contain"
               />
             ) : (
-              <FaUtensils className="w-16 h-16 md:w-20 md:h-20 text-teal-400" />
+              <FaUtensils className="w-16 h-16 md:w-20 md:h-20 text-teal-500 dark:text-teal-400" />
             )}
           </motion.div>
           <motion.h1
-            className="text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-linear-to-r from-teal-400 to-purple-400 py-2"
+            className="text-3xl md:text-5xl font-bold text-transparent bg-clip-text 
+              bg-linear-to-r from-teal-600 to-purple-600 dark:from-teal-400 dark:to-purple-400 py-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
@@ -123,9 +131,9 @@ export default function Home() {
             onClick={() => handleNavigation('/manager')}
             whileHover={{ y: -5 }}
             whileTap={{ scale: 0.98 }}
-            className="flex flex-col items-center p-8 bg-linear-to-br from-blue-500 to-blue-600 
-            text-white rounded-2xl transition-all duration-300
-            backdrop-blur-sm bg-opacity-90 h-full relative"
+            className="flex flex-col items-center p-8 bg-linear-to-br from-blue-400 to-blue-500 
+            dark:from-blue-500 dark:to-blue-600 text-white rounded-2xl transition-all duration-300
+            backdrop-blur-sm bg-opacity-90 h-full relative shadow-lg hover:shadow-xl"
             disabled={loadingRoute !== null}
           >
             {loadingRoute === '/manager' ? (
@@ -150,9 +158,9 @@ export default function Home() {
             onClick={() => handleNavigation('/sale')}
             whileHover={{ y: -5 }}
             whileTap={{ scale: 0.98 }}
-            className="flex flex-col items-center p-8 bg-linear-to-br from-green-500 to-green-600 
-            text-white rounded-2xl transition-all duration-300
-            backdrop-blur-sm bg-opacity-90 h-full relative"
+            className="flex flex-col items-center p-8 bg-linear-to-br from-green-400 to-green-500 
+            dark:from-green-500 dark:to-green-600 text-white rounded-2xl transition-all duration-300
+            backdrop-blur-sm bg-opacity-90 h-full relative shadow-lg hover:shadow-xl"
             disabled={loadingRoute !== null}
           >
             {loadingRoute === '/sale' ? (
@@ -177,9 +185,9 @@ export default function Home() {
             onClick={() => handleNavigation('/analytics')}
             whileHover={{ y: -5 }}
             whileTap={{ scale: 0.98 }}
-            className="flex flex-col items-center p-8 bg-linear-to-br from-purple-500 to-purple-600 
-            text-white rounded-2xl transition-all duration-300
-            backdrop-blur-sm bg-opacity-90 h-full relative"
+            className="flex flex-col items-center p-8 bg-linear-to-br from-purple-400 to-purple-500 
+            dark:from-purple-500 dark:to-purple-600 text-white rounded-2xl transition-all duration-300
+            backdrop-blur-sm bg-opacity-90 h-full relative shadow-lg hover:shadow-xl"
             disabled={loadingRoute !== null}
           >
             {loadingRoute === '/analytics' ? (
@@ -204,9 +212,9 @@ export default function Home() {
             onClick={() => handleNavigation('/transactions')}
             whileHover={{ y: -5 }}
             whileTap={{ scale: 0.98 }}
-            className="flex flex-col items-center p-8 bg-linear-to-br from-orange-500 to-orange-600 
-            text-white rounded-2xl transition-all duration-300
-            backdrop-blur-sm bg-opacity-90 h-full relative"
+            className="flex flex-col items-center p-8 bg-linear-to-br from-orange-400 to-orange-500 
+            dark:from-orange-500 dark:to-orange-600 text-white rounded-2xl transition-all duration-300
+            backdrop-blur-sm bg-opacity-90 h-full relative shadow-lg hover:shadow-xl"
             disabled={loadingRoute !== null}
           >
             {loadingRoute === '/transactions' ? (
@@ -231,9 +239,9 @@ export default function Home() {
             onClick={() => handleNavigation('/settings')}
             whileHover={{ y: -5 }}
             whileTap={{ scale: 0.98 }}
-            className="flex flex-col items-center p-8 bg-linear-to-br from-gray-500 to-gray-600 
-            text-white rounded-2xl transition-all duration-300
-            backdrop-blur-sm bg-opacity-90 h-full relative"
+            className="flex flex-col items-center p-8 bg-linear-to-br from-gray-400 to-gray-500 
+            dark:from-gray-500 dark:to-gray-600 text-white rounded-2xl transition-all duration-300
+            backdrop-blur-sm bg-opacity-90 h-full relative shadow-lg hover:shadow-xl"
             disabled={loadingRoute !== null}
           >
             {loadingRoute === '/settings' ? (
@@ -258,9 +266,9 @@ export default function Home() {
             onClick={() => handleNavigation('/about')}
             whileHover={{ y: -5 }}
             whileTap={{ scale: 0.98 }}
-            className="flex flex-col items-center p-8 bg-linear-to-br from-pink-500 to-pink-600 
-            text-white rounded-2xl transition-all duration-300
-            backdrop-blur-sm bg-opacity-90 h-full relative"
+            className="flex flex-col items-center p-8 bg-linear-to-br from-pink-400 to-pink-500 
+            dark:from-pink-500 dark:to-pink-600 text-white rounded-2xl transition-all duration-300
+            backdrop-blur-sm bg-opacity-90 h-full relative shadow-lg hover:shadow-xl"
             disabled={loadingRoute !== null}
           >
             {loadingRoute === '/about' ? (
@@ -285,9 +293,9 @@ export default function Home() {
             onClick={() => handleNavigation('/support')}
             whileHover={{ y: -5 }}
             whileTap={{ scale: 0.98 }}
-            className="flex flex-col items-center p-8 bg-linear-to-br from-teal-500 to-teal-600 
-            text-white rounded-2xl transition-all duration-300
-            backdrop-blur-sm bg-opacity-90 h-full relative"
+            className="flex flex-col items-center p-8 bg-linear-to-br from-teal-400 to-teal-500 
+            dark:from-teal-500 dark:to-teal-600 text-white rounded-2xl transition-all duration-300
+            backdrop-blur-sm bg-opacity-90 h-full relative shadow-lg hover:shadow-xl"
             disabled={loadingRoute !== null}
           >
             {loadingRoute === '/support' ? (

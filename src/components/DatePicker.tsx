@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { MdKeyboardArrowDown } from 'react-icons/md';
 
 interface DatePickerProps {
   value: string;
@@ -11,7 +12,15 @@ export default function DatePicker({ value, onChange, label }: DatePickerProps) 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+  const [showYearDropdown, setShowYearDropdown] = useState(false);
+  const [monthSearch, setMonthSearch] = useState('');
+  const [yearSearch, setYearSearch] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
+  const monthDropdownRef = useRef<HTMLDivElement>(null);
+  const yearDropdownRef = useRef<HTMLDivElement>(null);
+  const monthSearchRef = useRef<HTMLInputElement>(null);
+  const yearSearchRef = useRef<HTMLInputElement>(null);
 
   // Initialize from value if provided
   useEffect(() => {
@@ -27,6 +36,8 @@ export default function DatePicker({ value, onChange, label }: DatePickerProps) 
     const handleClickOutside = (event: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
+        setShowMonthDropdown(false);
+        setShowYearDropdown(false);
       }
     };
 
@@ -35,6 +46,21 @@ export default function DatePicker({ value, onChange, label }: DatePickerProps) 
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [isOpen]);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (monthDropdownRef.current && !monthDropdownRef.current.contains(event.target as Node)) {
+        setShowMonthDropdown(false);
+      }
+      if (yearDropdownRef.current && !yearDropdownRef.current.contains(event.target as Node)) {
+        setShowYearDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return 'Select date';
@@ -75,23 +101,61 @@ export default function DatePicker({ value, onChange, label }: DatePickerProps) 
 
   const years = Array.from({ length: 20 }, (_, i) => new Date().getFullYear() - 10 + i);
 
+  // Filter months based on search
+  const filteredMonths = months.filter(month => 
+    month.toLowerCase().includes(monthSearch.toLowerCase())
+  );
+
+  // Filter years based on search or generate extended range if typing custom year
+  const getFilteredYears = () => {
+    if (yearSearch) {
+      const searchNum = parseInt(yearSearch);
+      if (!isNaN(searchNum)) {
+        // If typing a valid year, include it in the list
+        const extendedYears = [...years];
+        if (!extendedYears.includes(searchNum) && searchNum >= 1900 && searchNum <= 2100) {
+          extendedYears.push(searchNum);
+          extendedYears.sort((a, b) => b - a);
+        }
+        return extendedYears.filter(year => year.toString().includes(yearSearch));
+      }
+    }
+    return years;
+  };
+
+  const filteredYears = getFilteredYears();
+
   const selectedDate = value ? new Date(value).getDate() : null;
+
+  // Focus search input when dropdown opens
+  useEffect(() => {
+    if (showMonthDropdown && monthSearchRef.current) {
+      monthSearchRef.current.focus();
+    }
+  }, [showMonthDropdown]);
+
+  useEffect(() => {
+    if (showYearDropdown && yearSearchRef.current) {
+      yearSearchRef.current.focus();
+    }
+  }, [showYearDropdown]);
 
   return (
     <div ref={containerRef} className="relative">
-      <label className="block text-white mb-2">{label}</label>
+      <label className="block text-slate-900 dark:text-white mb-2">{label}</label>
       <div className="relative">
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className="w-full px-4 py-2 rounded-lg bg-slate-700 text-white border border-slate-600 
+          className="w-full px-4 py-2 rounded-lg bg-white dark:bg-slate-700 
+            text-slate-900 dark:text-white border border-slate-300 dark:border-slate-600 
             hover:border-teal-400 focus:outline-none focus:border-teal-400 transition-colors
             text-left flex items-center justify-between"
         >
-          <span className={value ? 'text-white' : 'text-gray-400'}>
+          <span className={value ? 'text-slate-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'}>
             {formatDate(value)}
           </span>
-          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
         </button>
@@ -103,36 +167,194 @@ export default function DatePicker({ value, onChange, label }: DatePickerProps) 
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.15 }}
-              className="absolute z-50 mt-2 p-4 bg-slate-800 rounded-lg border border-slate-600 shadow-xl w-full min-w-[280px]"
+              className="absolute z-50 mt-2 p-4 bg-white dark:bg-slate-800 rounded-lg 
+                border border-slate-300 dark:border-slate-600 shadow-xl w-full min-w-[280px]"
             >
               {/* Month/Year Selectors */}
               <div className="flex gap-2 mb-4">
-                <select
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(Number(e.target.value))}
-                  className="flex-1 px-2 py-1 rounded bg-slate-700 text-white text-sm border border-slate-600 
-                    focus:outline-none focus:border-teal-400"
-                >
-                  {months.map((month, idx) => (
-                    <option key={idx} value={idx}>{month}</option>
-                  ))}
-                </select>
-                <select
-                  value={selectedYear}
-                  onChange={(e) => setSelectedYear(Number(e.target.value))}
-                  className="px-2 py-1 rounded bg-slate-700 text-white text-sm border border-slate-600 
-                    focus:outline-none focus:border-teal-400"
-                >
-                  {years.map((year) => (
-                    <option key={year} value={year}>{year}</option>
-                  ))}
-                </select>
+                {/* Custom Month Dropdown */}
+                <div ref={monthDropdownRef} className="flex-1 relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMonthDropdown(!showMonthDropdown);
+                      setShowYearDropdown(false);
+                      setMonthSearch('');
+                    }}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 
+                      text-slate-900 dark:text-white text-sm border border-slate-300 dark:border-slate-600 
+                      hover:border-teal-400 dark:hover:border-teal-500 focus:outline-none 
+                      transition-colors flex items-center justify-between"
+                  >
+                    <span>{months[selectedMonth]}</span>
+                    <MdKeyboardArrowDown className={`w-5 h-5 transition-transform ${showMonthDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  <AnimatePresence>
+                    {showMonthDropdown && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute z-60 mt-1 w-full bg-white dark:bg-slate-700 rounded-lg 
+                          border border-slate-300 dark:border-slate-600 shadow-xl overflow-hidden"
+                      >
+                        {/* Search Input */}
+                        <div className="p-2 border-b border-slate-300 dark:border-slate-600">
+                          <input
+                            ref={monthSearchRef}
+                            type="text"
+                            value={monthSearch}
+                            onChange={(e) => setMonthSearch(e.target.value)}
+                            placeholder="Search month..."
+                            className="w-full px-3 py-1.5 text-sm rounded-md bg-slate-50 dark:bg-slate-800 
+                              text-slate-900 dark:text-white border border-slate-300 dark:border-slate-600 
+                              focus:outline-none focus:border-teal-400 dark:focus:border-teal-500 
+                              placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                        
+                        {/* Month List */}
+                        <div className="max-h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-400 dark:scrollbar-thumb-slate-500">
+                          {filteredMonths.length > 0 ? (
+                            filteredMonths.map((month, idx) => {
+                              const originalIdx = months.indexOf(month);
+                              return (
+                                <button
+                                  key={idx}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedMonth(originalIdx);
+                                    setShowMonthDropdown(false);
+                                    setMonthSearch('');
+                                  }}
+                                  className={`w-full px-3 py-2 text-left text-sm hover:bg-teal-500/20 
+                                    dark:hover:bg-teal-500/30 transition-colors
+                                    ${selectedMonth === originalIdx 
+                                      ? 'bg-teal-500 text-white hover:bg-teal-600' 
+                                      : 'text-slate-900 dark:text-white'
+                                    }`}
+                                >
+                                  {month}
+                                </button>
+                              );
+                            })
+                          ) : (
+                            <div className="px-3 py-4 text-sm text-center text-slate-500 dark:text-slate-400">
+                              No months found
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Custom Year Dropdown */}
+                <div ref={yearDropdownRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowYearDropdown(!showYearDropdown);
+                      setShowMonthDropdown(false);
+                      setYearSearch('');
+                    }}
+                    className="px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-700 
+                      text-slate-900 dark:text-white text-sm border border-slate-300 dark:border-slate-600 
+                      hover:border-teal-400 dark:hover:border-teal-500 focus:outline-none 
+                      transition-colors flex items-center justify-between gap-2 min-w-[100px]"
+                  >
+                    <span>{selectedYear}</span>
+                    <MdKeyboardArrowDown className={`w-5 h-5 transition-transform ${showYearDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  <AnimatePresence>
+                    {showYearDropdown && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -5 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute z-60 mt-1 w-full bg-white dark:bg-slate-700 rounded-lg 
+                          border border-slate-300 dark:border-slate-600 shadow-xl overflow-hidden"
+                      >
+                        {/* Search/Custom Input */}
+                        <div className="p-2 border-b border-slate-300 dark:border-slate-600">
+                          <input
+                            ref={yearSearchRef}
+                            type="text"
+                            value={yearSearch}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              // Only allow numbers
+                              if (value === '' || /^\d+$/.test(value)) {
+                                setYearSearch(value);
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && yearSearch) {
+                                const year = parseInt(yearSearch);
+                                if (!isNaN(year) && year >= 1900 && year <= 2100) {
+                                  setSelectedYear(year);
+                                  setShowYearDropdown(false);
+                                  setYearSearch('');
+                                }
+                              }
+                            }}
+                            placeholder="Type or search year..."
+                            className="w-full px-3 py-1.5 text-sm rounded-md bg-slate-50 dark:bg-slate-800 
+                              text-slate-900 dark:text-white border border-slate-300 dark:border-slate-600 
+                              focus:outline-none focus:border-teal-400 dark:focus:border-teal-500 
+                              placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          {yearSearch && (
+                            <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 px-1">
+                              Press Enter to use custom year
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Year List */}
+                        <div className="max-h-[180px] overflow-y-auto scrollbar-thin scrollbar-thumb-slate-400 dark:scrollbar-thumb-slate-500">
+                          {filteredYears.length > 0 ? (
+                            filteredYears.map((year) => (
+                              <button
+                                key={year}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedYear(year);
+                                  setShowYearDropdown(false);
+                                  setYearSearch('');
+                                }}
+                                className={`w-full px-3 py-2 text-left text-sm hover:bg-teal-500/20 
+                                  dark:hover:bg-teal-500/30 transition-colors
+                                  ${selectedYear === year 
+                                    ? 'bg-teal-500 text-white hover:bg-teal-600' 
+                                    : 'text-slate-900 dark:text-white'
+                                  }`}
+                              >
+                                {year}
+                              </button>
+                            ))
+                          ) : (
+                            <div className="px-3 py-4 text-sm text-center text-slate-500 dark:text-slate-400">
+                              {yearSearch ? 'Enter a year between 1900-2100' : 'No years found'}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
 
               {/* Calendar Grid */}
               <div className="grid grid-cols-7 gap-1 mb-3">
                 {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
-                  <div key={day} className="text-center text-xs text-gray-400 font-medium py-1">
+                  <div key={day} className="text-center text-xs text-slate-600 dark:text-gray-400 font-medium py-1">
                     {day}
                   </div>
                 ))}
@@ -154,7 +376,7 @@ export default function DatePicker({ value, onChange, label }: DatePickerProps) 
                         p-2 text-sm rounded hover:bg-teal-500 hover:text-white transition-colors
                         ${isSelected 
                           ? 'bg-teal-500 text-white font-semibold' 
-                          : 'text-white hover:bg-teal-500/20'}
+                          : 'text-slate-900 dark:text-white hover:bg-teal-500/20'}
                       `}
                     >
                       {day}
@@ -164,12 +386,12 @@ export default function DatePicker({ value, onChange, label }: DatePickerProps) 
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 pt-3 border-t border-slate-600">
+              <div className="flex gap-2 pt-3 border-t border-slate-300 dark:border-slate-600">
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="flex-1 px-3 py-1.5 text-sm rounded bg-slate-700 text-white 
-                    hover:bg-slate-600 transition-colors"
+                  className="flex-1 px-3 py-1.5 text-sm rounded bg-slate-200 dark:bg-slate-700 
+                    text-slate-900 dark:text-white hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
                 >
                   Clear
                 </button>

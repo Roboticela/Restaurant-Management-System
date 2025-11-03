@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import CompanyLogo from '../assets/CompanyLogo.png';
 import packageJson from '../../package.json';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function About() {
   const navigate = useNavigate();
@@ -47,7 +48,12 @@ export default function About() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-purple-100 to-slate-100 
+      dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 transition-colors duration-300">
+      {/* Theme Toggle */}
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
       <div className="max-w-7xl mx-auto px-4 py-12 md:py-24">
         {/* Header */}
         <motion.div
@@ -60,19 +66,20 @@ export default function About() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="bg-white/10 backdrop-blur-sm rounded-full p-6 w-fit mx-auto mb-6"
+            className="bg-white/20 dark:bg-white/10 backdrop-blur-sm rounded-full p-6 w-fit mx-auto mb-6"
           >
-            <FaHeart className="w-16 h-16 md:w-20 md:h-20 text-teal-400" />
+            <FaHeart className="w-16 h-16 md:w-20 md:h-20 text-teal-500 dark:text-teal-400" />
           </motion.div>
           <motion.h1
-            className="text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-linear-to-r from-teal-400 to-purple-400 py-2"
+            className="text-3xl md:text-5xl font-bold text-transparent bg-clip-text 
+              bg-gradient-to-r from-teal-600 to-purple-600 dark:from-teal-400 dark:to-purple-400 py-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
             About Restaurant Management System
           </motion.h1>
-          <p className="text-gray-300 mt-4 text-lg">
+          <p className="text-slate-600 dark:text-gray-300 mt-4 text-lg transition-colors duration-300">
             An open-source solution for managing your restaurant operations
           </p>
         </motion.div>
@@ -85,28 +92,28 @@ export default function About() {
           transition={{ delay: 0.2 }}
         >
           {/* Project Info */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8">
-            <h2 className="text-2xl font-semibold text-white mb-4 flex items-center gap-2">
-              <FaCode className="text-teal-400" />
+          <div className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8 transition-colors duration-300">
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <FaCode className="text-teal-600 dark:text-teal-400" />
               About the Project
             </h2>
-            <p className="text-gray-300 leading-relaxed mb-4">
+            <p className="text-slate-600 dark:text-gray-300 leading-relaxed mb-4">
               Restaurant Management System is a modern, open-source desktop application built with Tauri, React, and TypeScript. 
               It provides a comprehensive solution for managing restaurant operations including sales, inventory, analytics, and more.
             </p>
-            <p className="text-gray-300 leading-relaxed">
+            <p className="text-slate-600 dark:text-gray-300 leading-relaxed">
               This application is designed to be fast, secure, and easy to use. Built with performance in mind, 
               it leverages the power of Rust for backend operations and React for a beautiful, responsive user interface.
             </p>
           </div>
 
           {/* GitHub & Contribution */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8">
-            <h2 className="text-2xl font-semibold text-white mb-6 flex items-center gap-2">
-              <FaGithub className="text-teal-400" />
+          <div className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8 transition-colors duration-300">
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+              <FaGithub className="text-teal-600 dark:text-teal-400" />
               Open Source
             </h2>
-            <p className="text-gray-300 leading-relaxed mb-6">
+            <p className="text-slate-600 dark:text-gray-300 leading-relaxed mb-6">
               This project is open-source and welcomes contributions from the community. 
               Whether you want to report a bug, suggest a feature, or contribute code, we'd love to hear from you!
             </p>
@@ -115,9 +122,9 @@ export default function About() {
               <motion.button
                 onClick={openGitHub}
                 disabled={isOpeningGitHub}
-                className="w-full py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl 
-                  font-semibold transition-colors duration-200 flex items-center justify-center gap-2
-                  disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 
+                  text-slate-900 dark:text-white rounded-xl font-semibold transition-colors duration-200 
+                  flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isOpeningGitHub ? (
                   <>
@@ -139,7 +146,8 @@ export default function About() {
               <motion.button
                 onClick={starOnGitHub}
                 disabled={isStarringGitHub}
-                className="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-white rounded-xl 
+                className="w-full py-3 bg-yellow-500 dark:bg-yellow-600 hover:bg-yellow-600 dark:hover:bg-yellow-500 
+                  text-white rounded-xl 
                   font-semibold transition-colors duration-200 flex items-center justify-center gap-2
                   disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -161,9 +169,9 @@ export default function About() {
               </motion.button>
             </div>
 
-            <div className="mt-6 p-4 bg-white/5 rounded-lg">
-              <h3 className="text-lg font-semibold text-white mb-2">How to Contribute</h3>
-              <ul className="text-gray-300 space-y-2">
+            <div className="mt-6 p-4 bg-white/30 dark:bg-white/5 rounded-lg">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">How to Contribute</h3>
+              <ul className="text-slate-700 dark:text-gray-300 space-y-2">
                 <li>• Fork the repository on GitHub</li>
                 <li>• Create a new branch for your feature or bugfix</li>
                 <li>• Make your changes and commit with clear messages</li>
@@ -174,11 +182,11 @@ export default function About() {
           </div>
 
           {/* Links Section */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">Important Links</h2>
-            <div className="space-y-4 text-gray-300">
+          <div className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8 transition-colors duration-300">
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4">Important Links</h2>
+            <div className="space-y-4 text-slate-600 dark:text-gray-300">
               <p>
-                <strong className="text-white">Landing Page:</strong> Visit our app landing page at{' '}
+                <strong className="text-slate-900 dark:text-white">Landing Page:</strong> Visit our app landing page at{' '}
                 <a 
                   href="https://github.com/Roboticela/restaurant-management-system" 
                   target="_blank" 
@@ -189,7 +197,7 @@ export default function About() {
                 </a>
               </p>
               <p>
-                <strong className="text-white">Privacy Policy:</strong> Read our{' '}
+                <strong className="text-slate-900 dark:text-white">Privacy Policy:</strong> Read our{' '}
                 <a 
                   href="https://github.com/Roboticela/restaurant-management-system/blob/main/PRIVACY.md" 
                   target="_blank" 
@@ -200,7 +208,7 @@ export default function About() {
                 </a>
               </p>
               <p>
-                <strong className="text-white">Terms of Use:</strong> Read our{' '}
+                <strong className="text-slate-900 dark:text-white">Terms of Use:</strong> Read our{' '}
                 <a 
                   href="https://github.com/Roboticela/restaurant-management-system/blob/main/TERMS.md" 
                   target="_blank" 
@@ -214,42 +222,42 @@ export default function About() {
           </div>
 
           {/* Technology Stack */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">Technology Stack</h2>
+          <div className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8 transition-colors duration-300">
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4">Technology Stack</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <div className="bg-white/5 p-4 rounded-lg text-center">
-                <p className="text-teal-400 font-semibold">Tauri</p>
-                <p className="text-gray-400 text-sm">Desktop Framework</p>
+              <div className="bg-white/50 dark:bg-white/5 p-4 rounded-lg text-center">
+                <p className="text-teal-600 dark:text-teal-400 font-semibold">Tauri</p>
+                <p className="text-slate-600 dark:text-gray-400 text-sm">Desktop Framework</p>
               </div>
-              <div className="bg-white/5 p-4 rounded-lg text-center">
-                <p className="text-teal-400 font-semibold">React</p>
-                <p className="text-gray-400 text-sm">UI Library</p>
+              <div className="bg-white/50 dark:bg-white/5 p-4 rounded-lg text-center">
+                <p className="text-teal-600 dark:text-teal-400 font-semibold">React</p>
+                <p className="text-slate-600 dark:text-gray-400 text-sm">UI Library</p>
               </div>
-              <div className="bg-white/5 p-4 rounded-lg text-center">
-                <p className="text-teal-400 font-semibold">TypeScript</p>
-                <p className="text-gray-400 text-sm">Type Safety</p>
+              <div className="bg-white/50 dark:bg-white/5 p-4 rounded-lg text-center">
+                <p className="text-teal-600 dark:text-teal-400 font-semibold">TypeScript</p>
+                <p className="text-slate-600 dark:text-gray-400 text-sm">Type Safety</p>
               </div>
-              <div className="bg-white/5 p-4 rounded-lg text-center">
-                <p className="text-teal-400 font-semibold">Rust</p>
-                <p className="text-gray-400 text-sm">Backend</p>
+              <div className="bg-white/50 dark:bg-white/5 p-4 rounded-lg text-center">
+                <p className="text-teal-600 dark:text-teal-400 font-semibold">Rust</p>
+                <p className="text-slate-600 dark:text-gray-400 text-sm">Backend</p>
               </div>
-              <div className="bg-white/5 p-4 rounded-lg text-center">
-                <p className="text-teal-400 font-semibold">SQLite</p>
-                <p className="text-gray-400 text-sm">Database</p>
+              <div className="bg-white/50 dark:bg-white/5 p-4 rounded-lg text-center">
+                <p className="text-teal-600 dark:text-teal-400 font-semibold">SQLite</p>
+                <p className="text-slate-600 dark:text-gray-400 text-sm">Database</p>
               </div>
-              <div className="bg-white/5 p-4 rounded-lg text-center">
-                <p className="text-teal-400 font-semibold">Tailwind CSS</p>
-                <p className="text-gray-400 text-sm">Styling</p>
+              <div className="bg-white/50 dark:bg-white/5 p-4 rounded-lg text-center">
+                <p className="text-teal-600 dark:text-teal-400 font-semibold">Tailwind CSS</p>
+                <p className="text-slate-600 dark:text-gray-400 text-sm">Styling</p>
               </div>
             </div>
           </div>
 
           {/* Version Info */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8 text-center">
-            <p className="text-gray-300">
-              <strong className="text-white">Version:</strong> {packageJson.version}
+          <div className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8 text-center transition-colors duration-300">
+            <p className="text-slate-600 dark:text-gray-300">
+              <strong className="text-slate-900 dark:text-white">Version:</strong> {packageJson.version}
             </p>
-            <p className="text-gray-400 text-sm mt-2">
+            <p className="text-slate-500 dark:text-gray-400 text-sm mt-2">
               © {new Date().getFullYear()} Roboticela. All rights reserved.
             </p>
           </div>
@@ -261,15 +269,15 @@ export default function About() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
           >
-            <div className="flex items-center justify-center gap-3 text-gray-300">
+            <div className="flex items-center justify-center gap-3 text-slate-600 dark:text-gray-300">
               <span className="text-sm">Developed by</span>
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2">
+              <div className="flex items-center gap-2 bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-lg px-4 py-2 transition-colors duration-300">
                 <img 
                   src={CompanyLogo} 
                   alt="Roboticela Logo" 
                   className="h-8 w-8 object-contain"
                 />
-                <span className="text-white font-semibold text-lg">Roboticela</span>
+                <span className="text-slate-900 dark:text-white font-semibold text-lg">Roboticela</span>
               </div>
             </div>
           </motion.div>

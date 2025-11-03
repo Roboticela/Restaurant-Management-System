@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useState, useEffect, useMemo } from 'react';
 import { MdArrowBack, MdTrendingUp, MdAttachMoney, MdShoppingCart } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
+import ThemeToggle from '../components/ThemeToggle';
 import {
   LineChart, Line, AreaChart, Area, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell
@@ -77,15 +78,19 @@ export default function Analytics() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900 
-    flex items-center justify-center">
-        <div className="text-white">Loading analytics...</div>
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-900 flex items-center justify-center transition-colors duration-300">
+        <div className="text-slate-900 dark:text-white">Loading analytics...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-linear-to-br from-slate-100 via-purple-100 to-slate-100 
+      dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 transition-colors duration-300">
+      {/* Theme Toggle */}
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-center gap-4 sm:justify-between mb-8">
@@ -93,7 +98,9 @@ export default function Analytics() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleBackNavigation}
-            className="flex items-center text-white gap-2 bg-purple-600/30 px-4 py-2 rounded-lg min-w-[120px] justify-center"
+            className="flex items-center text-slate-900 dark:text-white gap-2 
+              bg-purple-200 dark:bg-purple-600/30 px-4 py-2 rounded-lg min-w-[120px] justify-center
+              transition-colors duration-300"
             disabled={isNavigating}
           >
             {isNavigating ? (
@@ -112,7 +119,9 @@ export default function Analytics() {
               </>
             )}
           </motion.button>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Analytics Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white transition-colors duration-300">
+            Analytics Dashboard
+          </h1>
           <div className="hidden sm:block w-32"></div>
         </div>
 
@@ -121,15 +130,15 @@ export default function Analytics() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-6"
+            className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-6 transition-colors duration-300"
           >
             <div className="flex items-center gap-4">
               <div className="p-3 bg-teal-500/20 rounded-lg">
-                <MdAttachMoney className="w-6 h-6 text-teal-500" />
+                <MdAttachMoney className="w-6 h-6 text-teal-600 dark:text-teal-500" />
               </div>
               <div>
-                <p className="text-white/60">Total Revenue</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-slate-600 dark:text-white/60">Total Revenue</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {currency} {data.summary.total_revenue.toFixed(2)}
                 </p>
               </div>
@@ -140,15 +149,15 @@ export default function Analytics() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-6"
+            className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-6 transition-colors duration-300"
           >
             <div className="flex items-center gap-4">
               <div className="p-3 bg-blue-500/20 rounded-lg">
-                <MdTrendingUp className="w-6 h-6 text-blue-500" />
+                <MdTrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-500" />
               </div>
               <div>
-                <p className="text-white/60">Growth Rate</p>
-                <p className="text-2xl font-bold text-white">{growthRate}%</p>
+                <p className="text-slate-600 dark:text-white/60">Growth Rate</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{growthRate}%</p>
               </div>
             </div>
           </motion.div>
@@ -157,15 +166,15 @@ export default function Analytics() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-6"
+            className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-6 transition-colors duration-300"
           >
             <div className="flex items-center gap-4">
               <div className="p-3 bg-purple-500/20 rounded-lg">
-                <MdShoppingCart className="w-6 h-6 text-purple-500" />
+                <MdShoppingCart className="w-6 h-6 text-purple-600 dark:text-purple-500" />
               </div>
               <div>
-                <p className="text-white/60">Total Orders</p>
-                <p className="text-2xl font-bold text-white">{data.summary.total_orders}</p>
+                <p className="text-slate-600 dark:text-white/60">Total Orders</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">{data.summary.total_orders}</p>
               </div>
             </div>
           </motion.div>
@@ -174,15 +183,15 @@ export default function Analytics() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-6"
+            className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-6 transition-colors duration-300"
           >
             <div className="flex items-center gap-4">
               <div className="p-3 bg-orange-500/20 rounded-lg">
-                <MdAttachMoney className="w-6 h-6 text-orange-500" />
+                <MdAttachMoney className="w-6 h-6 text-orange-600 dark:text-orange-500" />
               </div>
               <div>
-                <p className="text-white/60">Avg. Order Value</p>
-                <p className="text-2xl font-bold text-white">
+                <p className="text-slate-600 dark:text-white/60">Avg. Order Value</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-white">
                   {currency} {data.summary.average_order_value.toFixed(2)}
                 </p>
               </div>
@@ -195,10 +204,10 @@ export default function Analytics() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-8 mb-8 text-center"
+            className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-8 mb-8 text-center transition-colors duration-300"
           >
-            <div className="text-white/60 text-lg mb-2">No data available yet</div>
-            <div className="text-white/40">
+            <div className="text-slate-600 dark:text-white/60 text-lg mb-2">No data available yet</div>
+            <div className="text-slate-500 dark:text-white/40">
               Complete some sales to see analytics and insights
             </div>
           </motion.div>
@@ -210,9 +219,9 @@ export default function Analytics() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-4 sm:p-6"
+            className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 transition-colors duration-300"
           >
-            <h2 className="text-lg sm:text-xl font-bold text-white mb-4">Revenue Trend</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-4">Revenue Trend</h2>
             <div className="h-[250px] sm:h-[300px]">
               {data.daily_revenue.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -241,7 +250,7 @@ export default function Analytics() {
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <p className="text-white/40">No revenue data available</p>
+                  <p className="text-slate-500 dark:text-white/40">No revenue data available</p>
                 </div>
               )}
             </div>
@@ -251,9 +260,9 @@ export default function Analytics() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-4 sm:p-6"
+            className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 transition-colors duration-300"
           >
-            <h2 className="text-lg sm:text-xl font-bold text-white mb-4">Top Products</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-4">Top Products</h2>
             <div className="h-[250px] sm:h-[300px]">
               {data.top_products.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -270,7 +279,7 @@ export default function Analytics() {
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <p className="text-white/40">No product sales data available</p>
+                  <p className="text-slate-500 dark:text-white/40">No product sales data available</p>
                 </div>
               )}
             </div>
@@ -280,9 +289,9 @@ export default function Analytics() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-4 sm:p-6"
+            className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 transition-colors duration-300"
           >
-            <h2 className="text-lg sm:text-xl font-bold text-white mb-4">Product Distribution</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-4">Product Distribution</h2>
             <div className="h-[250px] sm:h-[300px]">
               {data.product_distribution.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -316,7 +325,7 @@ export default function Analytics() {
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <p className="text-white/40">No product distribution data available</p>
+                  <p className="text-slate-500 dark:text-white/40">No product distribution data available</p>
                 </div>
               )}
             </div>
@@ -326,9 +335,9 @@ export default function Analytics() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-4 sm:p-6"
+            className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 transition-colors duration-300"
           >
-            <h2 className="text-lg sm:text-xl font-bold text-white mb-4">Daily Orders Trend</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mb-4">Daily Orders Trend</h2>
             <div className="h-[250px] sm:h-[300px]">
               {data.daily_revenue.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
@@ -350,7 +359,7 @@ export default function Analytics() {
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-full">
-                  <p className="text-white/40">No orders data available</p>
+                  <p className="text-slate-500 dark:text-white/40">No orders data available</p>
                 </div>
               )}
             </div>

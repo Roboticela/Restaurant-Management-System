@@ -4,6 +4,7 @@ import { FaEnvelope, FaPaperPlane, FaCheck, FaExclamationTriangle } from 'react-
 import { MdArrowBack } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
 import { invoke } from '@tauri-apps/api/core';
+import ThemeToggle from '../components/ThemeToggle';
 
 interface SupportMessage {
   name: string;
@@ -132,7 +133,13 @@ export default function Support() {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-linear-to-br from-slate-100 via-purple-100 to-slate-100 
+      dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 transition-colors duration-300">
+      {/* Theme Toggle */}
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+      
       <div className="max-w-7xl mx-auto px-4 py-12 md:py-24">
         {/* Header */}
         <motion.div
@@ -145,19 +152,20 @@ export default function Support() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="bg-white/10 backdrop-blur-sm rounded-full p-6 w-fit mx-auto mb-6"
+            className="bg-white/20 dark:bg-white/10 backdrop-blur-sm rounded-full p-6 w-fit mx-auto mb-6"
           >
-            <FaEnvelope className="w-16 h-16 md:w-20 md:h-20 text-teal-400" />
+            <FaEnvelope className="w-16 h-16 md:w-20 md:h-20 text-teal-500 dark:text-teal-400" />
           </motion.div>
           <motion.h1
-            className="text-3xl md:text-5xl font-bold text-transparent bg-clip-text bg-linear-to-r from-teal-400 to-purple-400 py-2"
+            className="text-3xl md:text-5xl font-bold text-transparent bg-clip-text 
+              bg-linear-to-r from-teal-600 to-purple-600 dark:from-teal-400 dark:to-purple-400 py-2"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
             Support & Contact
           </motion.h1>
-          <p className="text-gray-300 mt-4 text-lg">
+          <p className="text-slate-600 dark:text-gray-300 mt-4 text-lg transition-colors duration-300">
             Need help? Have questions? We're here for you!
           </p>
         </motion.div>
@@ -169,23 +177,23 @@ export default function Support() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8">
-            <h2 className="text-2xl font-semibold text-white mb-6">Send us a message</h2>
+          <div className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8 transition-colors duration-300">
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-6">Send us a message</h2>
             
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-gray-300 mb-2">Your Name</label>
+                  <label className="block text-slate-700 dark:text-gray-300 mb-2">Your Name</label>
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 rounded-lg bg-white/5 border text-white 
-                      focus:outline-none transition-colors ${
+                    className={`w-full px-4 py-2 rounded-lg bg-white/50 dark:bg-white/5 border 
+                      text-slate-900 dark:text-white focus:outline-none transition-colors ${
                         errors.name 
                           ? 'border-red-500 focus:border-red-400' 
-                          : 'border-gray-600 focus:border-teal-400'
+                          : 'border-slate-300 dark:border-gray-600 focus:border-teal-400'
                       }`}
                     disabled={isSubmitting}
                   />
@@ -195,17 +203,17 @@ export default function Support() {
                 </div>
 
                 <div>
-                  <label className="block text-gray-300 mb-2">Your Email</label>
+                  <label className="block text-slate-700 dark:text-gray-300 mb-2">Your Email</label>
                   <input
                     type="email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className={`w-full px-4 py-2 rounded-lg bg-white/5 border text-white 
-                      focus:outline-none transition-colors ${
+                    className={`w-full px-4 py-2 rounded-lg bg-white/50 dark:bg-white/5 border 
+                      text-slate-900 dark:text-white focus:outline-none transition-colors ${
                         errors.email 
                           ? 'border-red-500 focus:border-red-400' 
-                          : 'border-gray-600 focus:border-teal-400'
+                          : 'border-slate-300 dark:border-gray-600 focus:border-teal-400'
                       }`}
                     disabled={isSubmitting}
                   />
@@ -216,17 +224,17 @@ export default function Support() {
               </div>
 
               <div>
-                <label className="block text-gray-300 mb-2">Subject</label>
+                <label className="block text-slate-700 dark:text-gray-300 mb-2">Subject</label>
                 <input
                   type="text"
                   name="subject"
                   value={formData.subject}
                   onChange={handleChange}
-                  className={`w-full px-4 py-2 rounded-lg bg-white/5 border text-white 
-                    focus:outline-none transition-colors ${
+                  className={`w-full px-4 py-2 rounded-lg bg-white/50 dark:bg-white/5 border 
+                    text-slate-900 dark:text-white focus:outline-none transition-colors ${
                       errors.subject 
                         ? 'border-red-500 focus:border-red-400' 
-                        : 'border-gray-600 focus:border-teal-400'
+                        : 'border-slate-300 dark:border-gray-600 focus:border-teal-400'
                     }`}
                   disabled={isSubmitting}
                 />
@@ -236,17 +244,18 @@ export default function Support() {
               </div>
 
               <div>
-                <label className="block text-gray-300 mb-2">Message</label>
+                <label className="block text-slate-700 dark:text-gray-300 mb-2">Message</label>
                 <textarea
                   name="message"
                   value={formData.message}
                   onChange={handleChange}
                   rows={8}
-                  className={`w-full px-4 py-2 rounded-lg bg-white/5 border text-white 
-                    focus:outline-none transition-colors resize-none ${
+                  className={`w-full px-4 py-2 rounded-lg bg-white/50 dark:bg-white/5 border 
+                    text-slate-900 dark:text-white focus:outline-none transition-colors resize-none 
+                    placeholder:text-slate-400 dark:placeholder:text-gray-400 ${
                       errors.message 
                         ? 'border-red-500 focus:border-red-400' 
-                        : 'border-gray-600 focus:border-teal-400'
+                        : 'border-slate-300 dark:border-gray-600 focus:border-teal-400'
                     }`}
                   disabled={isSubmitting}
                   placeholder="Tell us how we can help you..."
@@ -309,11 +318,11 @@ export default function Support() {
           </div>
 
           {/* Alternative Support Options */}
-          <div className="mt-8 bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8">
-            <h2 className="text-2xl font-semibold text-white mb-4">Other Ways to Get Help</h2>
-            <div className="space-y-4 text-gray-300">
+          <div className="mt-8 bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-2xl p-6 md:p-8 transition-colors duration-300">
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-4">Other Ways to Get Help</h2>
+            <div className="space-y-4 text-slate-600 dark:text-gray-300">
               <p>
-                <strong className="text-white">GitHub Issues:</strong> Report bugs or request features on our{' '}
+                <strong className="text-slate-900 dark:text-white">GitHub Issues:</strong> Report bugs or request features on our{' '}
                 <a 
                   href="https://github.com/Roboticela/restaurant-management-system/issues" 
                   target="_blank" 
@@ -324,7 +333,7 @@ export default function Support() {
                 </a>
               </p>
               <p>
-                <strong className="text-white">App Website:</strong> Visit our official website at{' '}
+                <strong className="text-slate-900 dark:text-white">App Website:</strong> Visit our official website at{' '}
                 <a 
                   href="https://github.com/Roboticela/restaurant-management-system" 
                   target="_blank" 

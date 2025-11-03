@@ -7,6 +7,7 @@ import { Transaction, Settings } from '../types';
 import DatePicker from '../components/DatePicker';
 import Receipt from '../components/Receipt';
 import jsPDF from 'jspdf';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function Transactions() {
   const navigate = useNavigate();
@@ -228,15 +229,21 @@ export default function Transactions() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 
-    flex items-center justify-center">
-        <div className="text-white">Loading transactions...</div>
+      <div className="min-h-screen bg-slate-100 dark:bg-slate-900 
+        flex items-center justify-center transition-colors duration-300">
+        <div className="text-slate-900 dark:text-white">Loading transactions...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-linear-to-br from-slate-100 via-purple-100 to-slate-100 
+      dark:from-slate-900 dark:via-purple-900 dark:to-slate-900 transition-colors duration-300">
+      {/* Theme Toggle */}
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-0 sm:justify-between mb-6">
@@ -244,7 +251,9 @@ export default function Transactions() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleBackNavigation}
-            className="flex items-center text-white gap-2 bg-purple-600/30 px-4 py-2 rounded-lg min-w-[120px] justify-center"
+            className="flex items-center text-slate-900 dark:text-white gap-2 
+              bg-purple-200 dark:bg-purple-600/30 px-4 py-2 rounded-lg min-w-[120px] justify-center
+              transition-colors duration-300"
             disabled={isNavigating}
           >
             {isNavigating ? (
@@ -252,7 +261,7 @@ export default function Transactions() {
                 <motion.div
                   animate={{ rotate: 360 }}
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                  className="w-5 h-5 border-2 border-slate-900 dark:border-white border-t-transparent rounded-full"
                 />
                 <span>Loading...</span>
               </>
@@ -266,7 +275,7 @@ export default function Transactions() {
           <motion.h1 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-2xl sm:text-3xl font-bold text-white"
+            className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white transition-colors duration-300"
           >
             Transaction History
           </motion.h1>
@@ -274,7 +283,9 @@ export default function Transactions() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center text-white gap-2 bg-purple-600/30 px-4 py-2 rounded-lg"
+            className="flex items-center text-slate-900 dark:text-white gap-2 
+              bg-purple-200 dark:bg-purple-600/30 px-4 py-2 rounded-lg
+              transition-colors duration-300"
           >
             <MdFilterList className="w-5 h-5" />
             <span>Filters</span>
@@ -286,10 +297,10 @@ export default function Transactions() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-4"
+            className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-4 transition-colors duration-300"
           >
-            <h2 className="text-lg text-white mb-2">All Time Total</h2>
-            <p className="text-2xl font-bold text-teal-400">
+            <h2 className="text-lg text-slate-900 dark:text-white mb-2">All Time Total</h2>
+            <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {transactions[0]?.currency || ''} {totalAllTime.toFixed(2)}
             </p>
           </motion.div>
@@ -297,10 +308,10 @@ export default function Transactions() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-4"
+            className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-4 transition-colors duration-300"
           >
-            <h2 className="text-lg text-white mb-2">Filtered Period Total</h2>
-            <p className="text-2xl font-bold text-teal-400">
+            <h2 className="text-lg text-slate-900 dark:text-white mb-2">Filtered Period Total</h2>
+            <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {transactions[0]?.currency || ''} {totalFiltered.toFixed(2)}
             </p>
           </motion.div>
@@ -308,10 +319,10 @@ export default function Transactions() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-4"
+            className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-4 transition-colors duration-300"
           >
-            <h2 className="text-lg text-white mb-2">Filtered Transactions</h2>
-            <p className="text-2xl font-bold text-teal-400">
+            <h2 className="text-lg text-slate-900 dark:text-white mb-2">Filtered Transactions</h2>
+            <p className="text-2xl font-bold text-teal-600 dark:text-teal-400">
               {filteredTransactions.length}
             </p>
           </motion.div>
@@ -321,27 +332,27 @@ export default function Transactions() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6"
+          className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6 transition-colors duration-300"
         >
-          <h2 className="text-xl text-white mb-4">Product Statistics</h2>
+          <h2 className="text-xl text-slate-900 dark:text-white mb-4">Product Statistics</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {productStats.map((stat) => (
               <div 
                 key={stat.name}
-                className="bg-white/5 rounded-lg p-3"
+                className="bg-white/50 dark:bg-white/5 rounded-lg p-3"
               >
-                <h3 className="text-white font-medium mb-2">{stat.name}</h3>
+                <h3 className="text-slate-900 dark:text-white font-medium mb-2">{stat.name}</h3>
                 <div className="flex justify-between text-sm">
-                  <span className="text-white/60">Total Sold:</span>
-                  <span className="text-white">{stat.count} units</span>
+                  <span className="text-slate-600 dark:text-white/60">Total Sold:</span>
+                  <span className="text-slate-900 dark:text-white">{stat.count} units</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-white/60">Revenue:</span>
-                  <span className="text-teal-400">{transactions[0]?.currency || ''} {stat.totalAmount.toFixed(2)}</span>
+                  <span className="text-slate-600 dark:text-white/60">Revenue:</span>
+                  <span className="text-teal-600 dark:text-teal-400">{transactions[0]?.currency || ''} {stat.totalAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-white/60">Avg. Price:</span>
-                  <span className="text-white">{transactions[0]?.currency || ''} {(stat.totalAmount / stat.count).toFixed(2)}</span>
+                  <span className="text-slate-600 dark:text-white/60">Avg. Price:</span>
+                  <span className="text-slate-900 dark:text-white">{transactions[0]?.currency || ''} {(stat.totalAmount / stat.count).toFixed(2)}</span>
                 </div>
               </div>
             ))}
@@ -355,7 +366,7 @@ export default function Transactions() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6 overflow-visible"
+            className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6 overflow-visible transition-colors duration-300"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <DatePicker
@@ -373,8 +384,8 @@ export default function Transactions() {
               <div className="mt-4 flex justify-end">
                 <button
                   onClick={clearFilters}
-                  className="px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-400/10 
-                    rounded-lg transition-colors"
+                  className="px-4 py-2 text-red-600 dark:text-red-400 hover:text-red-500 dark:hover:text-red-300 
+                    hover:bg-red-400/10 rounded-lg transition-colors"
                 >
                   Clear Filters
                 </button>
@@ -391,11 +402,11 @@ export default function Transactions() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
-              className="bg-white/10 backdrop-blur-sm rounded-xl p-4"
+              className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-4 transition-colors duration-300"
             >
               <div className="flex justify-between items-start mb-4">
                 <div>
-                  <div className="text-white/60 text-sm">
+                  <div className="text-slate-600 dark:text-white/60 text-sm">
                     {new Date(transaction.date).toLocaleDateString('en-US', {
                       weekday: 'long',
                       year: 'numeric',
@@ -403,14 +414,14 @@ export default function Transactions() {
                       day: 'numeric'
                     })}
                   </div>
-                  <div className="text-white/60 text-sm">{transaction.time}</div>
+                  <div className="text-slate-600 dark:text-white/60 text-sm">{transaction.time}</div>
                 </div>
                 <div className="flex gap-2">
                   <motion.button
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setShowReceiptDialog(transaction)}
-                    className="text-white hover:text-teal-300 p-2 bg-teal-500/30 rounded-lg"
+                    className="text-white p-2 bg-teal-600 dark:bg-teal-500/30 hover:bg-teal-700 dark:hover:bg-teal-500/50 rounded-lg transition-colors"
                   >
                     <MdLocalPrintshop className="w-5 h-5" />
                   </motion.button>
@@ -418,7 +429,7 @@ export default function Transactions() {
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => handleDeleteTransaction(transaction.id)}
-                    className="text-red-400 hover:text-red-300 p-2"
+                    className="text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 p-2"
                   >
                     <MdDelete className="w-5 h-5" />
                   </motion.button>
@@ -427,23 +438,23 @@ export default function Transactions() {
 
               <div className="space-y-2 mb-4">
                 {transaction.items.map((item, index) => (
-                  <div key={index} className="flex flex-col sm:flex-row sm:justify-between text-white py-1">
+                  <div key={index} className="flex flex-col sm:flex-row sm:justify-between text-slate-900 dark:text-white py-1">
                     <div className="flex-1">
                       <span className="font-medium">{item.name}</span>
-                      <span className="text-white/60 ml-2">
+                      <span className="text-slate-600 dark:text-white/60 ml-2">
                         ({item.quantity} {item.unit} × {transaction.currency} {(item.price || 0).toFixed(2)})
                       </span>
                     </div>
-                    <div className="text-teal-400 sm:ml-4">
+                    <div className="text-teal-600 dark:text-teal-400 sm:ml-4">
                       {transaction.currency} {(item.subtotal || 0).toFixed(2)}
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="border-t border-white/10 pt-3 flex justify-between items-center">
-                <span className="text-white font-semibold">Total:</span>
-                <span className="text-xl font-bold text-teal-400">
+              <div className="border-t border-slate-300 dark:border-white/10 pt-3 flex justify-between items-center">
+                <span className="text-slate-900 dark:text-white font-semibold">Total:</span>
+                <span className="text-xl font-bold text-teal-600 dark:text-teal-400">
                   {transaction.currency} {transaction.total_amount.toFixed(2)}
                 </span>
               </div>
@@ -451,7 +462,7 @@ export default function Transactions() {
           ))}
 
           {filteredTransactions.length === 0 && (
-            <div className="text-center text-white/60 py-8">
+            <div className="text-center text-slate-600 dark:text-white/60 py-8">
               No transactions found for the selected period
             </div>
           )}
@@ -471,16 +482,16 @@ export default function Transactions() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
-            className="bg-slate-800 rounded-2xl p-6 max-w-md w-full my-8"
+            className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full my-8 transition-colors duration-300"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-white">Receipt</h3>
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">Receipt</h3>
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setShowReceiptDialog(null)}
-                className="text-white/60 hover:text-white p-2"
+                className="text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white p-2"
               >
                 <MdClose className="w-6 h-6" />
               </motion.button>

@@ -7,6 +7,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { Product, Settings, CartItem, Sale as SaleType } from '../types';
 import Receipt from '../components/Receipt';
 import jsPDF from 'jspdf';
+import ThemeToggle from '../components/ThemeToggle';
 
 export default function Sale() {
   const navigate = useNavigate();
@@ -29,6 +30,10 @@ export default function Sale() {
     receipt_footer: 'Thank you for your business!'
   });
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSelling, setIsSelling] = useState(false);
+  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const handleBackNavigation = () => {
     setIsNavigating(true);
@@ -40,6 +45,7 @@ export default function Sale() {
   useEffect(() => {
     const loadData = async () => {
       try {
+        setIsLoading(true);
         const [productsRes, settingsRes] = await Promise.all([
           invoke<Product[]>('get_products'),
           invoke<Settings>('get_settings')
@@ -57,6 +63,8 @@ export default function Sale() {
         }
       } catch (error) {
         console.error('Error loading data:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -103,6 +111,7 @@ export default function Sale() {
     }
 
     try {
+      setIsSelling(true);
       await invoke('add_sale', {
         sale: {
           products: cart.map(item => ({
@@ -135,6 +144,8 @@ export default function Sale() {
     } catch (error) {
       console.error('Error saving sale:', error);
       alert('Error completing sale');
+    } finally {
+      setIsSelling(false);
     }
   };
 
@@ -145,7 +156,12 @@ export default function Sale() {
   };
 
   const handlePrint = () => {
-    window.print();
+    setIsPrinting(true);
+    // Small delay to show the loading state
+    setTimeout(() => {
+      window.print();
+      setIsPrinting(false);
+    }, 500);
   };
 
   const handleDownloadPDF = async () => {
@@ -155,6 +171,7 @@ export default function Sale() {
     }
 
     try {
+      setIsDownloadingPDF(true);
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -248,6 +265,8 @@ export default function Sale() {
     } catch (error) {
       console.error('Error generating PDF:', error);
       alert(`Error generating PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsDownloadingPDF(false);
     }
   };
 
@@ -256,7 +275,24 @@ export default function Sale() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-900">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-900 transition-colors duration-300">
+      {/* Theme Toggle */}
+      <div className="absolute top-4 right-4 z-50">
+        <ThemeToggle />
+      </div>
+      
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center min-h-screen">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+            className="w-16 h-16 border-4 border-teal-500 border-t-transparent rounded-full"
+          />
+        </div>
+      )}
+      
+      {!isLoading && (
       <div className="max-w-7xl mx-auto px-4 py-4 sm:py-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-0 sm:justify-between mb-6 sm:mb-8">
@@ -264,7 +300,9 @@ export default function Sale() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleBackNavigation}
-            className="flex items-center text-white gap-2 bg-purple-600/30 px-4 py-2 rounded-lg min-w-[120px] justify-center"
+            className="flex items-center text-slate-900 dark:text-white gap-2 
+              bg-purple-200 dark:bg-purple-600/30 px-4 py-2 rounded-lg min-w-[120px] justify-center
+              transition-colors duration-300"
             disabled={isNavigating}
           >
             {isNavigating ? (
@@ -286,7 +324,8 @@ export default function Sale() {
           <motion.h1 
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-2xl sm:text-3xl font-bold text-white order-first sm:order-0"
+            className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white order-first sm:order-0 
+              transition-colors duration-300"
           >
             New Sale
           </motion.h1>
@@ -297,16 +336,17 @@ export default function Sale() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 mb-6 sm:mb-8"
+          className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-4 sm:p-6 mb-6 sm:mb-8 
+            transition-colors duration-300"
         >
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-lg sm:text-xl text-white mb-1">Total Amount</h2>
-              <p className="text-3xl sm:text-4xl font-bold text-teal-400">
+              <h2 className="text-lg sm:text-xl text-slate-900 dark:text-white mb-1">Total Amount</h2>
+              <p className="text-3xl sm:text-4xl font-bold text-teal-600 dark:text-teal-400">
                 {settings.currency} {totalAmount.toFixed(2)}
               </p>
             </div>
-            <div className="text-white/60">
+            <div className="text-slate-600 dark:text-white/60">
               {cart.length} items selected
             </div>
           </div>
@@ -324,15 +364,15 @@ export default function Sale() {
                 whileHover={{ scale: 1.02 }}
                 className={`relative p-4 rounded-xl transition-all duration-200 ${
                   cartItem 
-                    ? 'bg-teal-500/20 border-2 border-teal-500' 
-                    : 'bg-white/10 border-2 border-transparent'
+                    ? 'bg-teal-100 dark:bg-teal-500/20 border-2 border-teal-500 dark:border-teal-500' 
+                    : 'bg-white/70 dark:bg-white/10 border-2 border-transparent'
                 }`}
               >
                 <div className="flex flex-col gap-4">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="text-white font-medium">{product.name}</h3>
-                      <p className="text-teal-400 font-semibold">
+                      <h3 className="text-slate-900 dark:text-white font-medium">{product.name}</h3>
+                      <p className="text-teal-600 dark:text-teal-400 font-semibold">
                         {settings.currency} {product.price.toFixed(2)} per {product.unit}
                       </p>
                     </div>
@@ -352,7 +392,7 @@ export default function Sale() {
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="flex items-center justify-between bg-white/10 rounded-lg p-2"
+                      className="flex items-center justify-between bg-white/30 dark:bg-white/10 rounded-lg p-2"
                     >
                       <button
                         onClick={() => updateQuantity(
@@ -360,16 +400,16 @@ export default function Sale() {
                           (cartItem.quantity || 0) - (product.unit === 'item' || product.unit === 'items' ? 1 : 0.5),
                           product.unit
                         )}
-                        className="w-8 h-8 flex items-center justify-center text-white bg-red-500/20 
+                        className="w-8 h-8 flex items-center justify-center text-white bg-red-400 dark:bg-red-500/20 
                           hover:bg-red-500 rounded-lg transition-colors"
                       >
                         -
                       </button>
                       <div className="flex flex-col items-center">
-                        <span className="text-white font-medium text-lg">
+                        <span className="text-slate-900 dark:text-white font-medium text-lg">
                           {cartItem.quantity} {product.unit === 'item' ? 'item(s)' : product.unit}
                         </span>
-                        <span className="text-white/60 text-sm">
+                        <span className="text-slate-600 dark:text-white/60 text-sm">
                           {settings.currency} {(cartItem.quantity * product.price).toFixed(2)}
                         </span>
                       </div>
@@ -379,7 +419,7 @@ export default function Sale() {
                           (cartItem.quantity || 0) + (product.unit === 'item' || product.unit === 'items' ? 1 : 0.5),
                           product.unit
                         )}
-                        className="w-8 h-8 flex items-center justify-center text-white bg-teal-500/20 
+                        className="w-8 h-8 flex items-center justify-center text-white bg-teal-400 dark:bg-teal-500/20 
                           hover:bg-teal-500 rounded-lg transition-colors"
                       >
                         +
@@ -397,21 +437,21 @@ export default function Sale() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6"
+            className="bg-white/70 dark:bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-6 transition-colors duration-300"
           >
-            <h3 className="text-white font-semibold mb-3">Cart Summary</h3>
+            <h3 className="text-slate-900 dark:text-white font-semibold mb-3">Cart Summary</h3>
             <div className="space-y-2">
               {cart.map(item => (
-                <div key={item.id} className="flex justify-between items-center text-white/80">
+                <div key={item.id} className="flex justify-between items-center text-slate-700 dark:text-white/80">
                   <span>
                     {item.name} × {item.quantity} {item.unit === 'item' ? 'item(s)' : item.unit}
                   </span>
                   <span>{settings.currency} {(item.price * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
-              <div className="border-t border-white/10 pt-2 mt-2 flex justify-between items-center">
-                <span className="text-white font-semibold">Total</span>
-                <span className="text-teal-400 font-bold">
+              <div className="border-t border-slate-300 dark:border-white/10 pt-2 mt-2 flex justify-between items-center">
+                <span className="text-slate-900 dark:text-white font-semibold">Total</span>
+                <span className="text-teal-600 dark:text-teal-400 font-bold">
                   {settings.currency} {totalAmount.toFixed(2)}
                 </span>
               </div>
@@ -424,16 +464,30 @@ export default function Sale() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={handleSell}
-          disabled={cart.length === 0}
+          disabled={cart.length === 0 || isSelling}
           className={`w-full py-4 rounded-xl flex items-center justify-center gap-3 text-white font-semibold
-            transition-all duration-300 ${cart.length === 0 
+            transition-all duration-300 shadow-lg hover:shadow-xl ${cart.length === 0 || isSelling
               ? 'bg-gray-500/50 cursor-not-allowed' 
               : 'bg-teal-500'}`}
         >
-          <MdShoppingCart className="text-xl" />
-          Complete Sale
+          {isSelling ? (
+            <>
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+              />
+              <span>Processing...</span>
+            </>
+          ) : (
+            <>
+              <MdShoppingCart className="text-xl" />
+              Complete Sale
+            </>
+          )}
         </motion.button>
       </div>
+      )}
 
       {/* Success Dialog */}
       {showSuccessDialog && receiptData && (
@@ -447,7 +501,7 @@ export default function Sale() {
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
-            className="bg-slate-800 rounded-2xl p-6 max-w-md w-full my-8"
+            className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full my-8 transition-colors duration-300"
           >
             <div className="text-center">
               <motion.div
@@ -466,7 +520,7 @@ export default function Sale() {
               <motion.h3
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="text-2xl font-bold text-white mb-6"
+                className="text-2xl font-bold text-slate-900 dark:text-white mb-6"
               >
                 Sale Complete!
               </motion.h3>
@@ -490,22 +544,54 @@ export default function Sale() {
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handleDownloadPDF}
-                  className="py-3 px-4 bg-blue-500 text-white rounded-xl font-semibold 
-                    transition-all duration-300 flex items-center justify-center gap-2"
+                  disabled={isDownloadingPDF}
+                  className={`py-3 px-4 text-white rounded-xl font-semibold 
+                    transition-all duration-300 flex items-center justify-center gap-2 ${
+                      isDownloadingPDF ? 'bg-blue-300 cursor-not-allowed' : 'bg-blue-500'
+                    }`}
                 >
-                  <MdFileDownload className="text-xl" />
-                  PDF
+                  {isDownloadingPDF ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                      />
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <MdFileDownload className="text-xl" />
+                      PDF
+                    </>
+                  )}
                 </motion.button>
 
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={handlePrint}
-                  className="py-3 px-4 bg-purple-500 text-white rounded-xl font-semibold 
-                    transition-all duration-300 flex items-center justify-center gap-2"
+                  disabled={isPrinting}
+                  className={`py-3 px-4 text-white rounded-xl font-semibold 
+                    transition-all duration-300 flex items-center justify-center gap-2 ${
+                      isPrinting ? 'bg-purple-300 cursor-not-allowed' : 'bg-purple-500'
+                    }`}
                 >
-                  <MdLocalPrintshop className="text-xl" />
-                  Print
+                  {isPrinting ? (
+                    <>
+                      <motion.div
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                        className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                      />
+                      <span>Printing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <MdLocalPrintshop className="text-xl" />
+                      Print
+                    </>
+                  )}
                 </motion.button>
               </div>
 
