@@ -109,6 +109,24 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Extract version from tag or use workflow input
+        id: tag_version
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" == "push" ] && [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          elif [ "${{ github.event.inputs.version }}" != "" ]; then
+            VERSION=${{ github.event.inputs.version }}
+          else
+            # Extract version from tauri.conf.json as fallback
+            VERSION=$(grep -o '"version": "[^"]*"' src-tauri/tauri.conf.json | cut -d'"' -f4)
+            if [ -z "$VERSION" ]; then
+              VERSION="test-$(date +%Y%m%d-%H%M%S)"
+            fi
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
       - name: Build Vite app
         run: pnpm build
 
@@ -119,43 +137,92 @@ jobs:
         continue-on-error: true
 
       - name: Find and rename artifact
+        id: find_artifact
         shell: bash
         run: |
-          if [ -n "${{ matrix.artifact-path }}" ]; then
-            # Use shopt to enable globstar and nullglob for pattern matching
-            shopt -s globstar nullglob
-            # Try to find artifact using glob pattern
-            ARTIFACT=$(ls ${{ matrix.artifact-path }} 2>/dev/null | head -n 1)
-            if [ -z "$ARTIFACT" ]; then
-              # Fallback: try find with base name pattern
-              PATTERN=$(basename "${{ matrix.artifact-path }}" | sed 's/\*/.*/')
-              ARTIFACT=$(find . -type f -name "$PATTERN" | head -n 1)
-            fi
-            if [ -n "$ARTIFACT" ] && [ -f "$ARTIFACT" ]; then
-              cp "$ARTIFACT" "${{ matrix.artifact-name }}"
-              echo "Found and copied artifact: $ARTIFACT -> ${{ matrix.artifact-name }}"
-            else
-              echo "Warning: Artifact not found at ${{ matrix.artifact-path }}"
-              ls -la src-tauri/target/*/release/bundle/*/ 2>/dev/null || true
-            fi
+          VERSION="${{ steps.tag_version.outputs.version }}"
+          ARTIFACT_NAME="${{ matrix.artifact-name }}"
+          EXT="${ARTIFACT_NAME##*.}"
+          
+          # Construct the search directory and pattern
+          SEARCH_DIR=$(dirname "${{ matrix.artifact-path }}")
+          PATTERN=$(basename "${{ matrix.artifact-path }}" | sed 's/\*/.*/')
+          
+          echo "Searching for artifact in: $SEARCH_DIR"
+          echo "Pattern: $PATTERN"
+          
+          # Find the artifact file - search in the specific bundle directory
+          if [ -d "$SEARCH_DIR" ]; then
+            ARTIFACT=$(find "$SEARCH_DIR" -type f -name "$PATTERN" 2>/dev/null | head -n 1)
+          else
+            # Fallback: search in all target directories
+            ARTIFACT=$(find src-tauri/target -type f -name "$PATTERN" 2>/dev/null | head -n 1)
           fi
+          
+          if [ -z "$ARTIFACT" ]; then
+            # Last resort: list files in the expected directory
+            echo "Warning: Artifact not found with pattern $PATTERN"
+            echo "Contents of $SEARCH_DIR:"
+            ls -la "$SEARCH_DIR" 2>/dev/null || true
+            echo "Searching in all bundle directories:"
+            find src-tauri/target -path "*/bundle/*" -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.tar.gz" \) 2>/dev/null | head -5 || true
+            exit 1
+          fi
+          
+          # Create versioned filename: restaurant-management-system-platform-version.ext
+          ORIGINAL_BASE=$(basename "$ARTIFACT")
+          EXT="${ORIGINAL_BASE##*.}"
+          
+          # Remove extension for processing
+          NAME_NO_EXT="${ORIGINAL_BASE%.*}"
+          
+          # Tauri generates files like: restaurant-management-system_0.1.0_x64_en-US
+          # We want: restaurant-management-system-windows-x64-0.1.0
+          # Remove everything after the version number (arch, locale, etc.)
+          if echo "$NAME_NO_EXT" | grep -qE "_[0-9]+\.[0-9]+\.[0-9]+"; then
+            # Extract version number
+            VERSION_IN_FILE=$(echo "$NAME_NO_EXT" | grep -oE "_[0-9]+\.[0-9]+\.[0-9]+" | sed 's/_//')
+            # Use our version if available, otherwise use the one in filename
+            FINAL_VERSION="${VERSION:-$VERSION_IN_FILE}"
+            # Create new name: restaurant-management-system-platform-version
+            FINAL_NAME="restaurant-management-system-${{ matrix.platform }}-$FINAL_VERSION.$EXT"
+          else
+            # No version in filename, use our version
+            FINAL_NAME="restaurant-management-system-${{ matrix.platform }}-$VERSION.$EXT"
+          fi
+          
+          # Copy artifact with versioned name
+          cp "$ARTIFACT" "$FINAL_NAME"
+          echo "Found and copied artifact: $ARTIFACT -> $FINAL_NAME"
+          
+          # Set output for use in checksum step
+          echo "artifact_file=$FINAL_NAME" >> $GITHUB_OUTPUT
 
       - name: Generate checksums
+        id: checksums
         shell: bash
         run: |
-          if [ -f "${{ matrix.artifact-name }}" ]; then
+          ARTIFACT_FILE="${{ steps.find_artifact.outputs.artifact_file }}"
+          if [ -z "$ARTIFACT_FILE" ]; then
+            # Fallback to matrix name if output not set
+            ARTIFACT_FILE="${{ matrix.artifact-name }}"
+          fi
+          
+          if [ -f "$ARTIFACT_FILE" ]; then
             if [[ "${{ runner.os }}" == "Windows" ]]; then
               # Windows certutil format - extract hash and format as filename hash
-              SHA256=$(certutil -hashfile "${{ matrix.artifact-name }}" SHA256 | grep -v "^SHA256" | grep -v "^CertUtil" | tr -d ' \r\n')
-              echo "$SHA256  ${{ matrix.artifact-name }}" > "${{ matrix.artifact-name }}.sha256"
-              SHA512=$(certutil -hashfile "${{ matrix.artifact-name }}" SHA512 | grep -v "^SHA512" | grep -v "^CertUtil" | tr -d ' \r\n')
-              echo "$SHA512  ${{ matrix.artifact-name }}" > "${{ matrix.artifact-name }}.sha512"
+              SHA256=$(certutil -hashfile "$ARTIFACT_FILE" SHA256 | grep -v "^SHA256" | grep -v "^CertUtil" | tr -d ' \r\n')
+              echo "$SHA256  $ARTIFACT_FILE" > "$ARTIFACT_FILE.sha256"
+              SHA512=$(certutil -hashfile "$ARTIFACT_FILE" SHA512 | grep -v "^SHA512" | grep -v "^CertUtil" | tr -d ' \r\n')
+              echo "$SHA512  $ARTIFACT_FILE" > "$ARTIFACT_FILE.sha512"
             else
-              sha256sum "${{ matrix.artifact-name }}" > "${{ matrix.artifact-name }}.sha256"
-              sha512sum "${{ matrix.artifact-name }}" > "${{ matrix.artifact-name }}.sha512"
+              sha256sum "$ARTIFACT_FILE" > "$ARTIFACT_FILE.sha256"
+              sha512sum "$ARTIFACT_FILE" > "$ARTIFACT_FILE.sha512"
             fi
+            echo "Generated checksums for $ARTIFACT_FILE"
           else
-            echo "Warning: Artifact ${{ matrix.artifact-name }} not found for checksum generation"
+            echo "Warning: Artifact $ARTIFACT_FILE not found for checksum generation"
+            exit 1
           fi
 
       - name: Upload artifacts
@@ -163,9 +230,9 @@ jobs:
         with:
           name: ${{ matrix.platform }}
           path: |
-            ${{ matrix.artifact-name }}
-            ${{ matrix.artifact-name }}.sha256
-            ${{ matrix.artifact-name }}.sha512
+            ${{ steps.find_artifact.outputs.artifact_file }}
+            ${{ steps.find_artifact.outputs.artifact_file }}.sha256
+            ${{ steps.find_artifact.outputs.artifact_file }}.sha512
           if-no-files-found: warn
           retention-days: 30
 
