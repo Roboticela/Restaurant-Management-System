@@ -28,51 +28,51 @@ jobs:
           - platform: windows-x64
             runs-on: windows-latest
             artifact-name: restaurant-management-system-setup.exe
-            build-command: pnpm tauri build -- --target x86_64-pc-windows-msvc --bundles nsis
+            build-command: pnpm tauri build --bundles nsis --target x86_64-pc-windows-msvc
             artifact-path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/restaurant-management-system_*.exe
             
           - platform: windows-x64-msi
             runs-on: windows-latest
             artifact-name: restaurant-management-system-setup.msi
-            build-command: pnpm tauri build -- --target x86_64-pc-windows-msvc --bundles msi
+            build-command: pnpm tauri build --bundles msi --target x86_64-pc-windows-msvc
             artifact-path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/restaurant-management-system_*.msi
             
           # Linux builds
           - platform: linux-x64-appimage
             runs-on: ubuntu-latest
             artifact-name: restaurant-management-system.AppImage
-            build-command: pnpm tauri build -- --target x86_64-unknown-linux-gnu --bundles appimage
+            build-command: pnpm tauri build --bundles appimage --target x86_64-unknown-linux-gnu
             artifact-path: src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/restaurant-management-system_*.AppImage
             
           - platform: linux-x64-deb
             runs-on: ubuntu-latest
             artifact-name: restaurant-management-system.deb
-            build-command: pnpm tauri build -- --target x86_64-unknown-linux-gnu --bundles deb
+            build-command: pnpm tauri build --bundles deb --target x86_64-unknown-linux-gnu
             artifact-path: src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/restaurant-management-system_*.deb
             
           - platform: linux-x64-rpm
             runs-on: ubuntu-latest
             artifact-name: restaurant-management-system.rpm
-            build-command: pnpm tauri build -- --target x86_64-unknown-linux-gnu --bundles rpm
+            build-command: pnpm tauri build --bundles rpm --target x86_64-unknown-linux-gnu
             artifact-path: src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/restaurant-management-system_*.rpm
             
           # macOS builds
           - platform: macos-x64
             runs-on: macos-latest
             artifact-name: restaurant-management-system.dmg
-            build-command: pnpm tauri build -- --target x86_64-apple-darwin --bundles dmg
+            build-command: pnpm tauri build --bundles dmg --target x86_64-apple-darwin
             artifact-path: src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/restaurant-management-system_*.dmg
             
           - platform: macos-arm64
             runs-on: macos-latest
             artifact-name: restaurant-management-system-arm64.dmg
-            build-command: pnpm tauri build -- --target aarch64-apple-darwin --bundles dmg
+            build-command: pnpm tauri build --bundles dmg --target aarch64-apple-darwin
             artifact-path: src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/restaurant-management-system_*.dmg
             
           - platform: macos-x64-app
             runs-on: macos-latest
             artifact-name: restaurant-management-system.app.tar.gz
-            build-command: pnpm tauri build -- --target x86_64-apple-darwin --bundles app && tar -czf restaurant-management-system.app.tar.gz -C src-tauri/target/x86_64-apple-darwin/release/bundle/macos/restaurant-management-system.app .
+            build-command: pnpm tauri build --bundles app --target x86_64-apple-darwin && tar -czf restaurant-management-system.app.tar.gz -C src-tauri/target/x86_64-apple-darwin/release/bundle/macos/restaurant-management-system.app .
             artifact-path: restaurant-management-system.app.tar.gz
 
     steps:
