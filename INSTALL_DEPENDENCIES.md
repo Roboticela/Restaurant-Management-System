@@ -34,7 +34,8 @@ sudo apt install -y \
 sudo apt install -y \
   mingw-w64 \
   gcc-mingw-w64 \
-  g++-mingw-w64
+  g++-mingw-w64 \
+  clang-17
 ```
 
 #### ARM64/aarch64 Cross-Compilation

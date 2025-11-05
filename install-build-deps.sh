@@ -37,7 +37,8 @@ echo -e "${YELLOW}📦 Installing MinGW for Windows cross-compilation...${NC}"
 sudo apt install -y \
   mingw-w64 \
   gcc-mingw-w64 \
-  g++-mingw-w64
+  g++-mingw-w64 \
+  clang-17
 
 # Cross-compilation tools for ARM
 echo -e "${YELLOW}📦 Installing ARM cross-compilation tools...${NC}"

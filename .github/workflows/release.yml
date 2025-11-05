@@ -1,0 +1,272 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Triggers on version tags like v1.0.0, v1.2.3, etc.
+  workflow_dispatch:  # Allows manual triggering
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.0.0) - leave empty for test release'
+        required: false
+        type: string
+      draft:
+        description: 'Create as draft release'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    name: Build for ${{ matrix.platform }}
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows builds
+          - platform: windows-x64
+            runs-on: windows-latest
+            artifact-name: restaurant-management-system-setup.exe
+            build-command: pnpm tauri build -- --target x86_64-pc-windows-msvc --bundles nsis
+            artifact-path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/restaurant-management-system_*.exe
+            
+          - platform: windows-x64-msi
+            runs-on: windows-latest
+            artifact-name: restaurant-management-system-setup.msi
+            build-command: pnpm tauri build -- --target x86_64-pc-windows-msvc --bundles msi
+            artifact-path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/restaurant-management-system_*.msi
+            
+          # Linux builds
+          - platform: linux-x64-appimage
+            runs-on: ubuntu-latest
+            artifact-name: restaurant-management-system.AppImage
+            build-command: pnpm tauri build -- --target x86_64-unknown-linux-gnu --bundles appimage
+            artifact-path: src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/restaurant-management-system_*.AppImage
+            
+          - platform: linux-x64-deb
+            runs-on: ubuntu-latest
+            artifact-name: restaurant-management-system.deb
+            build-command: pnpm tauri build -- --target x86_64-unknown-linux-gnu --bundles deb
+            artifact-path: src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/restaurant-management-system_*.deb
+            
+          - platform: linux-x64-rpm
+            runs-on: ubuntu-latest
+            artifact-name: restaurant-management-system.rpm
+            build-command: pnpm tauri build -- --target x86_64-unknown-linux-gnu --bundles rpm
+            artifact-path: src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/restaurant-management-system_*.rpm
+            
+          # macOS builds
+          - platform: macos-x64
+            runs-on: macos-latest
+            artifact-name: restaurant-management-system.dmg
+            build-command: pnpm tauri build -- --target x86_64-apple-darwin --bundles dmg
+            artifact-path: src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/restaurant-management-system_*.dmg
+            
+          - platform: macos-arm64
+            runs-on: macos-latest
+            artifact-name: restaurant-management-system-arm64.dmg
+            build-command: pnpm tauri build -- --target aarch64-apple-darwin --bundles dmg
+            artifact-path: src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/restaurant-management-system_*.dmg
+            
+          - platform: macos-x64-app
+            runs-on: macos-latest
+            artifact-name: restaurant-management-system.app.tar.gz
+            build-command: pnpm tauri build -- --target x86_64-apple-darwin --bundles app && tar -czf restaurant-management-system.app.tar.gz -C src-tauri/target/x86_64-apple-darwin/release/bundle/macos/restaurant-management-system.app .
+            artifact-path: restaurant-management-system.app.tar.gz
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup Rust (for Tauri)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Install system dependencies (macOS for Tauri)
+        if: runner.os == 'macOS'
+        run: |
+          brew install create-dmg
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build Vite app
+        run: pnpm build
+
+      - name: Build platform-specific artifact
+        shell: bash
+        run: |
+          ${{ matrix.build-command }}
+        continue-on-error: true
+
+      - name: Find and rename artifact
+        shell: bash
+        run: |
+          if [ -n "${{ matrix.artifact-path }}" ]; then
+            # Use shopt to enable globstar and nullglob for pattern matching
+            shopt -s globstar nullglob
+            # Try to find artifact using glob pattern
+            ARTIFACT=$(ls ${{ matrix.artifact-path }} 2>/dev/null | head -n 1)
+            if [ -z "$ARTIFACT" ]; then
+              # Fallback: try find with base name pattern
+              PATTERN=$(basename "${{ matrix.artifact-path }}" | sed 's/\*/.*/')
+              ARTIFACT=$(find . -type f -name "$PATTERN" | head -n 1)
+            fi
+            if [ -n "$ARTIFACT" ] && [ -f "$ARTIFACT" ]; then
+              cp "$ARTIFACT" "${{ matrix.artifact-name }}"
+              echo "Found and copied artifact: $ARTIFACT -> ${{ matrix.artifact-name }}"
+            else
+              echo "Warning: Artifact not found at ${{ matrix.artifact-path }}"
+              ls -la src-tauri/target/*/release/bundle/*/ 2>/dev/null || true
+            fi
+          fi
+
+      - name: Generate checksums
+        shell: bash
+        run: |
+          if [ -f "${{ matrix.artifact-name }}" ]; then
+            if [[ "${{ runner.os }}" == "Windows" ]]; then
+              # Windows certutil format - extract hash and format as filename hash
+              SHA256=$(certutil -hashfile "${{ matrix.artifact-name }}" SHA256 | grep -v "^SHA256" | grep -v "^CertUtil" | tr -d ' \r\n')
+              echo "$SHA256  ${{ matrix.artifact-name }}" > "${{ matrix.artifact-name }}.sha256"
+              SHA512=$(certutil -hashfile "${{ matrix.artifact-name }}" SHA512 | grep -v "^SHA512" | grep -v "^CertUtil" | tr -d ' \r\n')
+              echo "$SHA512  ${{ matrix.artifact-name }}" > "${{ matrix.artifact-name }}.sha512"
+            else
+              sha256sum "${{ matrix.artifact-name }}" > "${{ matrix.artifact-name }}.sha256"
+              sha512sum "${{ matrix.artifact-name }}" > "${{ matrix.artifact-name }}.sha512"
+            fi
+          else
+            echo "Warning: Artifact ${{ matrix.artifact-name }} not found for checksum generation"
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}
+          path: |
+            ${{ matrix.artifact-name }}
+            ${{ matrix.artifact-name }}.sha256
+            ${{ matrix.artifact-name }}.sha512
+          if-no-files-found: warn
+          retention-days: 30
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Generate combined checksums
+        shell: bash
+        run: |
+          cd artifacts
+          echo "# SHA256 Checksums" > checksums-sha256.txt
+          echo "# Generated on $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> checksums-sha256.txt
+          echo "" >> checksums-sha256.txt
+          
+          echo "# SHA512 Checksums" > checksums-sha512.txt
+          echo "# Generated on $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> checksums-sha512.txt
+          echo "" >> checksums-sha512.txt
+          
+          find . -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.tar.gz" \) ! -name "*.sha*" | while read file; do
+            filename=$(basename "$file")
+            dirname=$(dirname "$file" | sed 's|^\./||')
+            if [ "$dirname" != "." ]; then
+              relative_path="${dirname}/${filename}"
+            else
+              relative_path="$filename"
+            fi
+            sha256sum "$file" | sed "s|  ./|  |" >> checksums-sha256.txt
+            sha512sum "$file" | sed "s|  ./|  |" >> checksums-sha512.txt
+          done
+
+      - name: Extract version from tag or use workflow input
+        id: tag_version
+        run: |
+          if [ "${{ github.event_name }}" == "push" ] && [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          elif [ "${{ github.event.inputs.version }}" != "" ]; then
+            VERSION=${{ github.event.inputs.version }}
+          else
+            VERSION="test-$(date +%Y%m%d-%H%M%S)"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/**/*
+            artifacts/checksums-*.txt
+          draft: ${{ github.event.inputs.draft || (github.event_name == 'workflow_dispatch' && !github.event.inputs.version) }}
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## 🚀 Release v${{ steps.tag_version.outputs.version }}
+            
+            ### 📦 Downloads
+            
+            This release includes builds for all supported platforms:
+            
+            #### 🪟 Windows
+            - **EXE Installer**: `restaurant-management-system-setup.exe`
+            - **MSI Installer**: `restaurant-management-system-setup.msi`
+            
+            #### 🐧 Linux
+            - **AppImage**: `restaurant-management-system.AppImage`
+            - **DEB Package**: `restaurant-management-system.deb`
+            - **RPM Package**: `restaurant-management-system.rpm`
+            
+            #### 🍎 macOS
+            - **DMG**: `restaurant-management-system.dmg` (Intel)
+            - **DMG**: `restaurant-management-system-arm64.dmg` (Apple Silicon)
+            - **App Bundle**: `restaurant-management-system.app.tar.gz`
+            
+            ### 🔐 Checksums
+            
+            SHA256 and SHA512 checksums are provided for all artifacts. You can verify downloads using:
+            
+            ```bash
+            # Verify SHA256
+            sha256sum -c checksums-sha256.txt
+            
+            # Verify SHA512
+            sha512sum -c checksums-sha512.txt
+            ```
+            
+            ### 📝 Notes
+            
+            - All checksums are included in this release
+            - Each artifact has individual `.sha256` and `.sha512` files
+            - Combined checksum files are available for batch verification
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
