@@ -107,7 +107,7 @@ jobs:
           brew install create-dmg
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Build Vite app
         run: pnpm build
