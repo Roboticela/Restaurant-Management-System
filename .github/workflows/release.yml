@@ -16,6 +16,10 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: write
+  id-token: write
+
 jobs:
   build:
     name: Build for ${{ matrix.platform }}
@@ -239,6 +243,63 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          
+          # Install cross-compilation toolchains for ARM targets
+          if [[ "${{ matrix.platform }}" == *"aarch64"* ]] || [[ "${{ matrix.platform }}" == *"arm64"* ]]; then
+            echo "Installing ARM64 cross-compilation toolchain..."
+            # Enable multiarch for ARM64
+            sudo dpkg --add-architecture aarch64 || true
+            sudo apt-get update || true
+            
+            sudo apt-get install -y \
+              gcc-aarch64-linux-gnu \
+              g++-aarch64-linux-gnu \
+              pkg-config-aarch64-linux-gnu || true
+              
+            # Try to install ARM64 libraries (may not be available in all repos)
+            sudo apt-get install -y \
+              libwebkit2gtk-4.1-dev:aarch64 \
+              libappindicator3-dev:aarch64 \
+              librsvg2-dev:aarch64 || echo "ARM64 libraries may not be available - cross-compilation may fail"
+            
+            # Set up pkg-config for cross-compilation
+            export PKG_CONFIG_ALLOW_CROSS=1
+            export PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig
+            export PKG_CONFIG=aarch64-linux-gnu-pkg-config
+            export CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+            echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
+            echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
+            echo "PKG_CONFIG=aarch64-linux-gnu-pkg-config" >> $GITHUB_ENV
+            echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+          fi
+          
+          if [[ "${{ matrix.platform }}" == *"armv7"* ]]; then
+            echo "Installing ARMv7 cross-compilation toolchain..."
+            # Enable multiarch for ARMv7
+            sudo dpkg --add-architecture armhf || true
+            sudo apt-get update || true
+            
+            sudo apt-get install -y \
+              gcc-arm-linux-gnueabihf \
+              g++-arm-linux-gnueabihf \
+              pkg-config-arm-linux-gnueabihf || true
+              
+            # Try to install ARMv7 libraries (may not be available in all repos)
+            sudo apt-get install -y \
+              libwebkit2gtk-4.1-dev:armhf \
+              libappindicator3-dev:armhf \
+              librsvg2-dev:armhf || echo "ARMv7 libraries may not be available - cross-compilation may fail"
+            
+            # Set up pkg-config for cross-compilation
+            export PKG_CONFIG_ALLOW_CROSS=1
+            export PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig
+            export PKG_CONFIG=arm-linux-gnueabihf-pkg-config
+            export CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc
+            echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
+            echo "PKG_CONFIG_PATH=/usr/lib/arm-linux-gnueabihf/pkgconfig" >> $GITHUB_ENV
+            echo "PKG_CONFIG=arm-linux-gnueabihf-pkg-config" >> $GITHUB_ENV
+            echo "CARGO_TARGET_ARMV7_UNKNOWN_LINUX_GNUEABIHF_LINKER=arm-linux-gnueabihf-gcc" >> $GITHUB_ENV
+          fi
 
       - name: Install system dependencies (macOS for Tauri)
         if: runner.os == 'macOS'
@@ -316,6 +377,15 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
+
+      - name: Initialize iOS project (before build, for iOS builds)
+        if: contains(matrix.platform, 'ios')
+        run: |
+          # Ensure iOS project is initialized before building
+          if [ ! -d "src-tauri/gen/apple" ] && [ ! -d "src-tauri/gen/ios" ]; then
+            echo "Initializing iOS project before build..."
+            pnpm tauri ios init || echo "Warning: iOS init failed"
+          fi
 
       - name: Build Vite app
         run: pnpm build
