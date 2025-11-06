@@ -295,88 +295,6 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
-      - name: Generate icons from Logo.png (for iOS/macOS)
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          # Generate icons from Logo.png for iOS and macOS
-          if [ -f "public/Logo.png" ]; then
-            echo "Found Logo.png, generating icons..."
-            LOGO="public/Logo.png"
-            ICONS_DIR="src-tauri/icons"
-            
-            # Function to resize image using available tool
-            resize_image() {
-              local input="$1"
-              local output="$2"
-              local size="$3"
-              
-              if command -v convert &> /dev/null; then
-                convert "$input" -resize "${size}x${size}" "$output" || return 1
-              elif command -v sips &> /dev/null; then
-                sips -z "$size" "$size" "$input" --out "$output" || return 1
-              else
-                echo "No image resizing tool available"
-                return 1
-              fi
-            }
-            
-            # Install ImageMagick on Linux if needed
-            if [ "${{ runner.os }}" == "Linux" ] && ! command -v convert &> /dev/null; then
-              sudo apt-get update -qq && sudo apt-get install -y imagemagick || echo "ImageMagick install failed"
-            fi
-            
-            # Check if we have a resizing tool
-            if command -v convert &> /dev/null || command -v sips &> /dev/null; then
-              echo "Generating icons from Logo.png..."
-              
-              # Generate iOS icon sizes from Logo.png
-              resize_image "$LOGO" "$ICONS_DIR/icon.png" 1024 || echo "Failed to generate icon.png"
-              resize_image "$LOGO" "$ICONS_DIR/32x32.png" 32 || echo "Failed to generate 32x32.png"
-              resize_image "$LOGO" "$ICONS_DIR/128x128.png" 128 || echo "Failed to generate 128x128.png"
-              resize_image "$LOGO" "$ICONS_DIR/128x128@2x.png" 256 || echo "Failed to generate 128x128@2x.png"
-              resize_image "$LOGO" "$ICONS_DIR/256x256.png" 256 || echo "Failed to generate 256x256.png"
-              resize_image "$LOGO" "$ICONS_DIR/512x512.png" 512 || echo "Failed to generate 512x512.png"
-              
-              # Generate iOS square logos
-              resize_image "$LOGO" "$ICONS_DIR/Square30x30Logo.png" 60 || echo "Failed to generate Square30x30Logo.png"
-              resize_image "$LOGO" "$ICONS_DIR/Square44x44Logo.png" 88 || echo "Failed to generate Square44x44Logo.png"
-              resize_image "$LOGO" "$ICONS_DIR/Square71x71Logo.png" 142 || echo "Failed to generate Square71x71Logo.png"
-              resize_image "$LOGO" "$ICONS_DIR/Square89x89Logo.png" 178 || echo "Failed to generate Square89x89Logo.png"
-              resize_image "$LOGO" "$ICONS_DIR/Square107x107Logo.png" 214 || echo "Failed to generate Square107x107Logo.png"
-              resize_image "$LOGO" "$ICONS_DIR/Square142x142Logo.png" 284 || echo "Failed to generate Square142x142Logo.png"
-              resize_image "$LOGO" "$ICONS_DIR/Square150x150Logo.png" 300 || echo "Failed to generate Square150x150Logo.png"
-              resize_image "$LOGO" "$ICONS_DIR/Square284x284Logo.png" 568 || echo "Failed to generate Square284x284Logo.png"
-              resize_image "$LOGO" "$ICONS_DIR/Square310x310Logo.png" 620 || echo "Failed to generate Square310x310Logo.png"
-              resize_image "$LOGO" "$ICONS_DIR/StoreLogo.png" 1024 || echo "Failed to generate StoreLogo.png"
-              
-              # For macOS, generate .icns if on macOS (requires iconutil)
-              if [ "${{ runner.os }}" == "macOS" ] && command -v iconutil &> /dev/null; then
-                echo "Generating macOS .icns file..."
-                ICONSET_DIR=$(mktemp -d)
-                resize_image "$LOGO" "$ICONSET_DIR/icon_16x16.png" 16
-                resize_image "$LOGO" "$ICONSET_DIR/icon_16x16@2x.png" 32
-                resize_image "$LOGO" "$ICONSET_DIR/icon_32x32.png" 32
-                resize_image "$LOGO" "$ICONSET_DIR/icon_32x32@2x.png" 64
-                resize_image "$LOGO" "$ICONSET_DIR/icon_128x128.png" 128
-                resize_image "$LOGO" "$ICONSET_DIR/icon_128x128@2x.png" 256
-                resize_image "$LOGO" "$ICONSET_DIR/icon_256x256.png" 256
-                resize_image "$LOGO" "$ICONSET_DIR/icon_256x256@2x.png" 512
-                resize_image "$LOGO" "$ICONSET_DIR/icon_512x512.png" 512
-                resize_image "$LOGO" "$ICONSET_DIR/icon_512x512@2x.png" 1024
-                # Create .icns file
-                iconutil -c icns "$ICONSET_DIR" -o "$ICONS_DIR/icon.icns" || echo "Failed to generate icon.icns"
-                rm -rf "$ICONSET_DIR"
-              fi
-              
-              echo "✓ Icons generated from Logo.png"
-            else
-              echo "Warning: No image resizing tool available (ImageMagick or sips), using existing icons"
-            fi
-          else
-            echo "Warning: Logo.png not found in public/, using existing icons"
-          fi
-
       - name: Initialize iOS project (before build, for iOS builds)
         if: contains(matrix.platform, 'ios')
         run: |
@@ -823,50 +741,27 @@ jobs:
           cd artifacts
           # Remove any .app directories that might have been extracted
           find . -type d -name "*.app" -exec rm -rf {} + 2>/dev/null || true
-          # Remove any individual files that shouldn't be in releases
-          find . -type f \( \
-            -name "*.nib" \
-            -o -name "Info.plist" \
-            -o -name "PkgInfo" \
-            -o -name "CodeResources" \
-            -o -name "Assets.car" \
-            -o -name "AppIcon*.png" \
-            -o -name "AppIcon*.jpg" \
-            -o -name "AppIcon*.jpeg" \
-            -o -name "*.icns" \
-            -o -name "Restaurant Management System" \
-            -o -name "Restaurant.Management.System" \
-            -o -name "UIViewController*.nib" \
-            -o -name "Y6W-OH-hqX*.nib" \
-            -o -name "*.xib" \
-            -o -name "*.storyboard" \
-            -o -name "*.strings" \
-            -o -name "*.plist" \
-            -o -name "*.car" \
-          \) -delete 2>/dev/null || true
-          # Remove any directories that contain only unwanted files
-          find . -type d -empty -delete 2>/dev/null || true
+          # Remove any individual files that shouldn't be in releases (nib, plist, png icons, etc.)
+          find . -type f \( -name "*.nib" -o -name "Info.plist" -o -name "PkgInfo" -o -name "CodeResources" -o -name "Assets.car" -o -name "AppIcon*.png" -o -name "Restaurant Management System" \) -delete 2>/dev/null || true
           echo "Cleaned up artifacts directory"
-          echo "Remaining files:"
-          find . -type f | head -20 || true
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            artifacts/restaurant-management-system-*.exe
-            artifacts/restaurant-management-system-*.msi
-            artifacts/restaurant-management-system-*.AppImage
-            artifacts/restaurant-management-system-*.deb
-            artifacts/restaurant-management-system-*.rpm
-            artifacts/restaurant-management-system-*.dmg
-            artifacts/restaurant-management-system-*.tar.gz
-            artifacts/restaurant-management-system-*.apk
-            artifacts/restaurant-management-system-*.ipa
-            artifacts/restaurant-management-system-*.zip
-            artifacts/restaurant-management-system-*.gz
-            artifacts/restaurant-management-system-*.sha256
-            artifacts/restaurant-management-system-*.sha512
+            artifacts/**/*.exe
+            artifacts/**/*.msi
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
+            artifacts/**/*.rpm
+            artifacts/**/*.dmg
+            artifacts/**/*.tar.gz
+            artifacts/**/*.apk
+            artifacts/**/*.ipa
+            artifacts/**/*.zip
+            artifacts/**/*.gz
+            artifacts/**/*.sha256
+            artifacts/**/*.sha512
             artifacts/checksums-*.txt
           draft: ${{ github.event.inputs.draft || (github.event_name == 'workflow_dispatch' && !github.event.inputs.version) }}
           prerelease: false
