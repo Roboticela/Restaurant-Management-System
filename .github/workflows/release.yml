@@ -129,12 +129,12 @@ jobs:
             artifact-path: src-tauri/gen/android/app/build/outputs/apk/release/app-release.apk
             
           # iOS builds
-          - platform: ios-aarch64
-            runs-on: macos-latest
-            artifact-name: restaurant-management-system.ipa
-            build-command: pnpm tauri ios build --target aarch64
-            artifact-path: src-tauri/gen/ios/build/Build/Products/Release-iphoneos/*.ipa
-            
+          # - platform: ios-aarch64
+          #   runs-on: macos-latest
+          #   artifact-name: restaurant-management-system.ipa
+          #   build-command: pnpm tauri ios build --target aarch64
+          #   artifact-path: src-tauri/gen/ios/build/Build/Products/Release-iphoneos/*.ipa
+          #   
           - platform: ios-simulator-aarch64
             runs-on: macos-latest
             artifact-name: restaurant-management-system-simulator.app
@@ -771,8 +771,8 @@ jobs:
             - **APK (i686)**: `restaurant-management-system-i686.apk` (32-bit x86 emulators)
             
             #### 🍎 iOS
-            - **IPA (Device)**: `restaurant-management-system.ipa` (Physical devices)
-            - **Simulator (Apple Silicon)**: `restaurant-management-system-simulator.ipa` (M1/M2/M3 simulators)
+            # - **IPA (Device)**: `restaurant-management-system.ipa` (Physical devices) - Commented out
+            - **Simulator (Apple Silicon)**: `restaurant-management-system-simulator.app` (M1/M2/M3 simulators)
             - **Simulator (Intel)**: `restaurant-management-system-simulator-x86_64.ipa` (Intel Mac simulators)
             
             ### 🔐 Checksums
