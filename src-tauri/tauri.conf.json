@@ -33,7 +33,7 @@
     "shortDescription": "Manage restaurant operations efficiently",
     "longDescription": "A comprehensive desktop application for managing restaurant sales, inventory, analytics, and more. Built with Tauri, React, and Rust for optimal performance and security.",
     "homepage": "https://restaurant-management-system.roboticela.com",
-    "licenseFile": "LICENSE",
+    "licenseFile": "../LICENSE",
     "icon": [
       "icons/icon.png",
       "icons/32x32.png",

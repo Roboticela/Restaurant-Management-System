@@ -182,6 +182,29 @@ jobs:
           
           echo "All required files verified"
 
+      - name: Prepare files for Windows build
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          # Copy LICENSE to src-tauri for NSIS bundler
+          # NSIS may need the file in a location relative to where it runs
+          if [ -f "LICENSE" ]; then
+            cp LICENSE src-tauri/LICENSE
+            echo "✓ Copied LICENSE to src-tauri directory"
+          fi
+          
+          # Verify paths are accessible
+          echo "Checking file accessibility from src-tauri:"
+          if [ -f "src-tauri/LICENSE" ]; then
+            echo "✓ src-tauri/LICENSE exists"
+          fi
+          if [ -f "src-tauri/icons/icon.ico" ]; then
+            echo "✓ src-tauri/icons/icon.ico exists"
+          fi
+          if [ -d "../dist" ] || [ -d "src-tauri/../dist" ]; then
+            echo "✓ dist directory accessible"
+          fi
+
       - name: Build platform-specific artifact
         shell: bash
         run: |
