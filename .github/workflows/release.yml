@@ -37,6 +37,18 @@ jobs:
             build-command: pnpm tauri build --bundles msi --target x86_64-pc-windows-msvc
             artifact-path: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/restaurant-management-system_*.msi
             
+          - platform: windows-aarch64
+            runs-on: windows-latest
+            artifact-name: restaurant-management-system-setup-arm64.exe
+            build-command: pnpm tauri build --bundles nsis --target aarch64-pc-windows-msvc
+            artifact-path: src-tauri/target/aarch64-pc-windows-msvc/release/bundle/nsis/restaurant-management-system_*.exe
+            
+          - platform: windows-i686
+            runs-on: windows-latest
+            artifact-name: restaurant-management-system-setup-x86.exe
+            build-command: pnpm tauri build --bundles nsis --target i686-pc-windows-msvc
+            artifact-path: src-tauri/target/i686-pc-windows-msvc/release/bundle/nsis/restaurant-management-system_*.exe
+            
           # Linux builds
           - platform: linux-x64-appimage
             runs-on: ubuntu-latest
@@ -55,6 +67,30 @@ jobs:
             artifact-name: restaurant-management-system.rpm
             build-command: pnpm tauri build --bundles rpm --target x86_64-unknown-linux-gnu
             artifact-path: src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/restaurant-management-system_*.rpm
+            
+          - platform: linux-aarch64-appimage
+            runs-on: ubuntu-latest
+            artifact-name: restaurant-management-system-arm64.AppImage
+            build-command: pnpm tauri build --bundles appimage --target aarch64-unknown-linux-gnu
+            artifact-path: src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/appimage/restaurant-management-system_*.AppImage
+            
+          - platform: linux-aarch64-deb
+            runs-on: ubuntu-latest
+            artifact-name: restaurant-management-system-arm64.deb
+            build-command: pnpm tauri build --bundles deb --target aarch64-unknown-linux-gnu
+            artifact-path: src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/restaurant-management-system_*.deb
+            
+          - platform: linux-armv7-appimage
+            runs-on: ubuntu-latest
+            artifact-name: restaurant-management-system-armv7.AppImage
+            build-command: pnpm tauri build --bundles appimage --target armv7-unknown-linux-gnueabihf
+            artifact-path: src-tauri/target/armv7-unknown-linux-gnueabihf/release/bundle/appimage/restaurant-management-system_*.AppImage
+            
+          - platform: linux-armv7-deb
+            runs-on: ubuntu-latest
+            artifact-name: restaurant-management-system-armv7.deb
+            build-command: pnpm tauri build --bundles deb --target armv7-unknown-linux-gnueabihf
+            artifact-path: src-tauri/target/armv7-unknown-linux-gnueabihf/release/bundle/deb/restaurant-management-system_*.deb
             
           # macOS builds
           - platform: macos-x64
@@ -75,6 +111,18 @@ jobs:
             build-command: pnpm tauri build --bundles app --target x86_64-apple-darwin && APP_BUNDLE=$(find src-tauri/target/x86_64-apple-darwin/release/bundle/macos -name "*.app" -type d | head -1) && tar -czf restaurant-management-system.app.tar.gz -C "$(dirname "$APP_BUNDLE")" "$(basename "$APP_BUNDLE")"
             artifact-path: restaurant-management-system.app.tar.gz
             
+          - platform: macos-arm64-app
+            runs-on: macos-latest
+            artifact-name: restaurant-management-system-arm64.app.tar.gz
+            build-command: pnpm tauri build --bundles app --target aarch64-apple-darwin && APP_BUNDLE=$(find src-tauri/target/aarch64-apple-darwin/release/bundle/macos -name "*.app" -type d | head -1) && tar -czf restaurant-management-system-arm64.app.tar.gz -C "$(dirname "$APP_BUNDLE")" "$(basename "$APP_BUNDLE")"
+            artifact-path: restaurant-management-system-arm64.app.tar.gz
+            
+          - platform: macos-universal
+            runs-on: macos-latest
+            artifact-name: restaurant-management-system-universal.dmg
+            build-command: pnpm tauri build --bundles dmg --target universal-apple-darwin
+            artifact-path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/restaurant-management-system_*.dmg
+            
           # Android builds
           - platform: android-aarch64
             runs-on: ubuntu-latest
@@ -94,6 +142,12 @@ jobs:
             build-command: pnpm tauri android build --target x86_64 --apk
             artifact-path: src-tauri/gen/android/app/build/outputs/apk/release/app-release.apk
             
+          - platform: android-i686
+            runs-on: ubuntu-latest
+            artifact-name: restaurant-management-system-i686.apk
+            build-command: pnpm tauri android build --target i686 --apk
+            artifact-path: src-tauri/gen/android/app/build/outputs/apk/release/app-release.apk
+            
           # iOS builds
           - platform: ios-aarch64
             runs-on: macos-latest
@@ -105,6 +159,12 @@ jobs:
             runs-on: macos-latest
             artifact-name: restaurant-management-system-simulator.ipa
             build-command: pnpm tauri ios build --target aarch64-apple-ios-sim
+            artifact-path: src-tauri/gen/ios/build/Build/Products/Release-iphonesimulator/*.app
+            
+          - platform: ios-simulator-x86_64
+            runs-on: macos-latest
+            artifact-name: restaurant-management-system-simulator-x86_64.ipa
+            build-command: pnpm tauri ios build --target x86_64-apple-ios
             artifact-path: src-tauri/gen/ios/build/Build/Products/Release-iphonesimulator/*.app
 
     steps:
@@ -133,22 +193,42 @@ jobs:
           # Install targets based on platform
           if [[ "${{ runner.os }}" == "Windows" ]]; then
             rustup target add x86_64-pc-windows-msvc
+            # Add ARM64 and i686 targets if building for those architectures
+            if [[ "${{ matrix.platform }}" == *"aarch64"* ]] || [[ "${{ matrix.platform }}" == *"arm64"* ]]; then
+              rustup target add aarch64-pc-windows-msvc
+            fi
+            if [[ "${{ matrix.platform }}" == *"i686"* ]] || [[ "${{ matrix.platform }}" == *"x86"* ]]; then
+              rustup target add i686-pc-windows-msvc
+            fi
           elif [[ "${{ runner.os }}" == "Linux" ]]; then
             rustup target add x86_64-unknown-linux-gnu
+            # Add ARM targets if building for those architectures
+            if [[ "${{ matrix.platform }}" == *"aarch64"* ]] || [[ "${{ matrix.platform }}" == *"arm64"* ]]; then
+              rustup target add aarch64-unknown-linux-gnu
+            fi
+            if [[ "${{ matrix.platform }}" == *"armv7"* ]]; then
+              rustup target add armv7-unknown-linux-gnueabihf
+            fi
             # Add Android targets if building for Android
             if [[ "${{ matrix.platform }}" == *"android"* ]]; then
               rustup target add aarch64-linux-android
               rustup target add armv7-linux-androideabi
               rustup target add x86_64-linux-android
+              rustup target add i686-linux-android
             fi
           elif [[ "${{ runner.os }}" == "macOS" ]]; then
             # macOS runners are Apple Silicon, install both targets
             rustup target add aarch64-apple-darwin
             rustup target add x86_64-apple-darwin
+            # Add universal target if building universal binary
+            if [[ "${{ matrix.platform }}" == *"universal"* ]]; then
+              rustup target add universal-apple-darwin || echo "Universal target may not be available"
+            fi
             # Add iOS targets if building for iOS
             if [[ "${{ matrix.platform }}" == *"ios"* ]]; then
               rustup target add aarch64-apple-ios
               rustup target add aarch64-apple-ios-sim
+              rustup target add x86_64-apple-ios || echo "x86_64-apple-ios may not be available"
             fi
           fi
           echo "Installed Rust targets:"
@@ -212,6 +292,7 @@ jobs:
           # Install iOS dependencies
           rustup target add aarch64-apple-ios || true
           rustup target add aarch64-apple-ios-sim || true
+          rustup target add x86_64-apple-ios || echo "x86_64-apple-ios target may not be available"
 
       - name: Install dependencies
         run: pnpm install
@@ -549,27 +630,37 @@ jobs:
             This release includes builds for all supported platforms:
             
             #### 🪟 Windows
-            - **EXE Installer**: `restaurant-management-system-setup.exe`
-            - **MSI Installer**: `restaurant-management-system-setup.msi`
+            - **EXE Installer (x64)**: `restaurant-management-system-setup.exe`
+            - **MSI Installer (x64)**: `restaurant-management-system-setup.msi`
+            - **EXE Installer (ARM64)**: `restaurant-management-system-setup-arm64.exe` (ARM-based Windows)
+            - **EXE Installer (x86)**: `restaurant-management-system-setup-x86.exe` (32-bit legacy)
             
             #### 🐧 Linux
-            - **AppImage**: `restaurant-management-system.AppImage`
-            - **DEB Package**: `restaurant-management-system.deb`
-            - **RPM Package**: `restaurant-management-system.rpm`
+            - **AppImage (x64)**: `restaurant-management-system.AppImage`
+            - **DEB Package (x64)**: `restaurant-management-system.deb`
+            - **RPM Package (x64)**: `restaurant-management-system.rpm`
+            - **AppImage (ARM64)**: `restaurant-management-system-arm64.AppImage`
+            - **DEB Package (ARM64)**: `restaurant-management-system-arm64.deb`
+            - **AppImage (ARMv7)**: `restaurant-management-system-armv7.AppImage`
+            - **DEB Package (ARMv7)**: `restaurant-management-system-armv7.deb`
             
             #### 🍎 macOS
-            - **DMG**: `restaurant-management-system.dmg` (Intel)
-            - **DMG**: `restaurant-management-system-arm64.dmg` (Apple Silicon)
-            - **App Bundle**: `restaurant-management-system.app.tar.gz`
+            - **DMG (Intel)**: `restaurant-management-system.dmg` (x64)
+            - **DMG (Apple Silicon)**: `restaurant-management-system-arm64.dmg` (ARM64)
+            - **DMG (Universal)**: `restaurant-management-system-universal.dmg` (Intel + Apple Silicon)
+            - **App Bundle (Intel)**: `restaurant-management-system.app.tar.gz`
+            - **App Bundle (Apple Silicon)**: `restaurant-management-system-arm64.app.tar.gz`
             
             #### 📱 Android
             - **APK (ARM64)**: `restaurant-management-system-aarch64.apk` (64-bit ARM devices)
             - **APK (ARMv7)**: `restaurant-management-system-armv7.apk` (32-bit ARM devices)
             - **APK (x86_64)**: `restaurant-management-system-x86_64.apk` (64-bit x86 emulators)
+            - **APK (i686)**: `restaurant-management-system-i686.apk` (32-bit x86 emulators)
             
             #### 🍎 iOS
-            - **IPA**: `restaurant-management-system.ipa` (Physical devices)
-            - **Simulator**: `restaurant-management-system-simulator.ipa` (iOS Simulator)
+            - **IPA (Device)**: `restaurant-management-system.ipa` (Physical devices)
+            - **Simulator (Apple Silicon)**: `restaurant-management-system-simulator.ipa` (M1/M2/M3 simulators)
+            - **Simulator (Intel)**: `restaurant-management-system-simulator-x86_64.ipa` (Intel Mac simulators)
             
             ### 🔐 Checksums
             
