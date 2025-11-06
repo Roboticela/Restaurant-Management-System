@@ -232,18 +232,20 @@ jobs:
 
       - name: Build platform-specific artifact
         shell: bash
-        env:
-          PATH: /usr/local/bin:/opt/homebrew/bin:$PATH
         run: |
+          # Ensure basic commands are available by setting PATH properly
+          export PATH="/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+          
           echo "Building for ${{ matrix.platform }}..."
           echo "Working directory: $(pwd)"
+          echo "PATH: $PATH"
           echo "Contents of dist:"
           ls -la dist/ | head -5 || true
           echo "Running: ${{ matrix.build-command }}"
           
           # For macOS, ensure PATH includes homebrew
           if [[ "${{ runner.os }}" == "macOS" ]]; then
-            export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+            export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH"
             echo "PATH set to: $PATH"
             which create-dmg || echo "Warning: create-dmg not in PATH"
           fi
