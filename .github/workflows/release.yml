@@ -161,15 +161,15 @@ jobs:
             
           - platform: ios-simulator-aarch64
             runs-on: macos-latest
-            artifact-name: restaurant-management-system-simulator.ipa
+            artifact-name: restaurant-management-system-simulator.app
             build-command: pnpm tauri ios build --target aarch64-sim
-            artifact-path: src-tauri/gen/ios/build/Build/Products/Release-iphonesimulator/*.app
+            artifact-path: src-tauri/gen/apple/build/arm64-sim/*.app
             
           - platform: ios-simulator-x86_64
             runs-on: macos-latest
-            artifact-name: restaurant-management-system-simulator-x86_64.ipa
+            artifact-name: restaurant-management-system-simulator-x86_64.app
             build-command: pnpm tauri ios build --target x86_64
-            artifact-path: src-tauri/gen/ios/build/Build/Products/Release-iphonesimulator/*.app
+            artifact-path: src-tauri/gen/apple/build/x86_64-sim/*.app
 
     steps:
       - name: Checkout code
@@ -272,20 +272,33 @@ jobs:
               
             # Try to install ARM64 libraries (may not be available in all repos)
             echo "Attempting to install ARM64 development libraries..."
+            INSTALL_FAILED=0
             sudo apt-get install -y \
               libwebkit2gtk-4.1-dev:aarch64 \
               libappindicator3-dev:aarch64 \
               librsvg2-dev:aarch64 \
               libgtk-3-dev:aarch64 \
               libglib2.0-dev:aarch64 \
+              libgobject-2.0-dev:aarch64 \
               libgdk-pixbuf-2.0-dev:aarch64 \
               libpango1.0-dev:aarch64 \
               libatk1.0-dev:aarch64 \
               libcairo2-dev:aarch64 \
-              libgirepository1.0-dev:aarch64 2>&1 | tee /tmp/arm64_install.log || {
-              echo "Warning: Some ARM64 libraries failed to install. Checking what's available..."
+              libgirepository1.0-dev:aarch64 2>&1 | tee /tmp/arm64_install.log || INSTALL_FAILED=1
+            
+            if [ $INSTALL_FAILED -eq 1 ]; then
+              echo "Warning: ARM64 library installation failed. Analyzing issue..."
               cat /tmp/arm64_install.log || true
-            }
+              echo ""
+              echo "Checking if packages exist in repositories..."
+              for pkg in libglib2.0-dev:aarch64 libgobject-2.0-dev:aarch64 libgtk-3-dev:aarch64; do
+                echo "Checking $pkg:"
+                apt-cache policy "$pkg" || echo "  Not found"
+              done
+              echo ""
+              echo "NOTE: ARM Linux cross-compilation may not be supported on GitHub Actions."
+              echo "Consider using native ARM runners or Docker with QEMU emulation."
+            fi
             
             # Verify pkg-config files are installed
             echo "Checking for glib-2.0.pc..."
@@ -321,6 +334,10 @@ jobs:
             sudo dpkg --add-architecture armhf || true
             sudo apt-get update || true
             
+            # Check if ARMv7 packages are available
+            echo "Checking availability of ARMv7 packages..."
+            apt-cache policy libglib2.0-dev:armhf || echo "libglib2.0-dev:armhf not found in repositories"
+            
             # Install cross-compilation toolchain
             sudo apt-get install -y \
               gcc-arm-linux-gnueabihf \
@@ -337,12 +354,47 @@ jobs:
             fi
               
             # Try to install ARMv7 libraries (may not be available in all repos)
+            echo "Attempting to install ARMv7 development libraries..."
+            INSTALL_FAILED=0
             sudo apt-get install -y \
               libwebkit2gtk-4.1-dev:armhf \
               libappindicator3-dev:armhf \
               librsvg2-dev:armhf \
               libgtk-3-dev:armhf \
-              libglib2.0-dev:armhf || echo "ARMv7 libraries may not be available - cross-compilation may fail"
+              libglib2.0-dev:armhf \
+              libgobject-2.0-dev:armhf \
+              libgdk-pixbuf-2.0-dev:armhf \
+              libpango1.0-dev:armhf \
+              libatk1.0-dev:armhf \
+              libcairo2-dev:armhf \
+              libgirepository1.0-dev:armhf 2>&1 | tee /tmp/armv7_install.log || INSTALL_FAILED=1
+            
+            if [ $INSTALL_FAILED -eq 1 ]; then
+              echo "Warning: ARMv7 library installation failed. Analyzing issue..."
+              cat /tmp/armv7_install.log || true
+              echo ""
+              echo "Checking if packages exist in repositories..."
+              for pkg in libglib2.0-dev:armhf libgobject-2.0-dev:armhf libgtk-3-dev:armhf; do
+                echo "Checking $pkg:"
+                apt-cache policy "$pkg" || echo "  Not found"
+              done
+              echo ""
+              echo "NOTE: ARM Linux cross-compilation may not be supported on GitHub Actions."
+              echo "Consider using native ARM runners or Docker with QEMU emulation."
+            fi
+            
+            # Verify pkg-config files are installed
+            echo "Checking for glib-2.0.pc..."
+            find /usr -name "glib-2.0.pc" 2>/dev/null | head -5 || echo "glib-2.0.pc not found in /usr"
+            echo "Checking ARMv7 pkg-config directory..."
+            ls -la /usr/lib/arm-linux-gnueabihf/pkgconfig/ 2>/dev/null || echo "ARMv7 pkg-config directory not found"
+            
+            # Try alternative paths
+            if [ ! -f "/usr/lib/arm-linux-gnueabihf/pkgconfig/glib-2.0.pc" ]; then
+              echo "glib-2.0.pc not found in expected location. Trying to find alternative locations..."
+              # Check if we can find it elsewhere or need to install differently
+              apt-cache search libglib2.0-dev | grep armhf || echo "No armhf glib packages found in cache"
+            fi
             
             # Set up pkg-config for cross-compilation
             export PKG_CONFIG_ALLOW_CROSS=1
@@ -450,6 +502,46 @@ jobs:
             pnpm tauri ios init || echo "Warning: iOS init failed"
           fi
 
+      - name: Configure iOS code signing (for iOS builds)
+        if: contains(matrix.platform, 'ios')
+        run: |
+          # For simulator builds, use ad-hoc signing (no team required)
+          # Find the Xcode project file and modify it
+          XCODE_PROJ=$(find src-tauri/gen/apple -name "*.xcodeproj" -type d 2>/dev/null | head -1)
+          if [ -z "$XCODE_PROJ" ]; then
+            echo "Warning: Xcode project not found, skipping code signing configuration"
+            exit 0
+          fi
+          
+          PROJECT_FILE="$XCODE_PROJ/project.pbxproj"
+          if [ ! -f "$PROJECT_FILE" ]; then
+            echo "Warning: project.pbxproj not found at $PROJECT_FILE"
+            exit 0
+          fi
+          
+          # For simulator builds, disable code signing requirements
+          if [[ "${{ matrix.platform }}" == *"simulator"* ]]; then
+            echo "Configuring ad-hoc code signing for simulator build..."
+            # Use sed to replace code signing settings
+            # Replace CODE_SIGN_IDENTITY = "" with CODE_SIGN_IDENTITY = "-"
+            sed -i '' 's/CODE_SIGN_IDENTITY = "";/CODE_SIGN_IDENTITY = "-";/g' "$PROJECT_FILE" || true
+            # Replace CODE_SIGNING_REQUIRED = YES with CODE_SIGNING_REQUIRED = NO
+            sed -i '' 's/CODE_SIGNING_REQUIRED = YES;/CODE_SIGNING_REQUIRED = NO;/g' "$PROJECT_FILE" || true
+            # Remove DEVELOPMENT_TEAM requirement by setting it to empty
+            sed -i '' 's/DEVELOPMENT_TEAM = "[^"]*";/DEVELOPMENT_TEAM = "";/g' "$PROJECT_FILE" || true
+            echo "Configured simulator build for ad-hoc signing"
+          else
+            # For device builds, try to use team from environment or disable signing
+            if [ -n "$APPLE_DEVELOPMENT_TEAM" ]; then
+              echo "Using development team: $APPLE_DEVELOPMENT_TEAM"
+              sed -i '' "s/DEVELOPMENT_TEAM = \"[^\"]*\";/DEVELOPMENT_TEAM = \"$APPLE_DEVELOPMENT_TEAM\";/g" "$PROJECT_FILE" || true
+            else
+              echo "Warning: No APPLE_DEVELOPMENT_TEAM set, using ad-hoc signing"
+              sed -i '' 's/CODE_SIGN_IDENTITY = "";/CODE_SIGN_IDENTITY = "-";/g' "$PROJECT_FILE" || true
+              sed -i '' 's/CODE_SIGNING_REQUIRED = YES;/CODE_SIGNING_REQUIRED = NO;/g' "$PROJECT_FILE" || true
+            fi
+          fi
+
       - name: Build Vite app
         run: pnpm build
 
@@ -529,6 +621,14 @@ jobs:
           # Ensure scripts will have execute permissions
           # Set umask to allow execute permissions
           umask 022
+          
+          # Pre-create DMG bundle directory and ensure permissions
+          # This helps avoid permission issues during build
+          mkdir -p src-tauri/target/x86_64-apple-darwin/release/bundle/dmg || true
+          mkdir -p src-tauri/target/aarch64-apple-darwin/release/bundle/dmg || true
+          
+          # Ensure any existing bundle_dmg.sh scripts have execute permissions
+          find src-tauri/target -name "bundle_dmg.sh" -exec chmod +x {} \; 2>/dev/null || true
           echo "Current umask: $(umask)"
 
       - name: Build platform-specific artifact
@@ -540,6 +640,18 @@ jobs:
           # For macOS, ensure PATH includes homebrew early
           if [[ "${{ runner.os }}" == "macOS" ]]; then
             export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:${PATH}"
+            # Ensure create-dmg is in PATH for DMG builds
+            if [[ "${{ matrix.platform }}" == *"macos"* ]] && [[ "${{ matrix.build-command }}" == *"dmg"* ]]; then
+              echo "Setting up environment for DMG build..."
+              export PATH="/usr/local/bin:/opt/homebrew/bin:${PATH}"
+              # Verify create-dmg is available
+              if ! command -v create-dmg &> /dev/null; then
+                echo "Warning: create-dmg not found, attempting to install..."
+                brew install create-dmg || true
+              fi
+              which create-dmg || echo "create-dmg still not found"
+              create-dmg --version || echo "create-dmg version check failed"
+            fi
           fi
           
           set -e
@@ -550,6 +662,24 @@ jobs:
           echo "Contents of dist:"
           ls -la dist/ | head -5 || true
           echo "Running: ${{ matrix.build-command }}"
+          
+          # For iOS simulator builds, set code signing environment variables
+          if [[ "${{ matrix.platform }}" == *"ios"* ]] && [[ "${{ matrix.platform }}" == *"simulator"* ]]; then
+            echo "Setting code signing environment for iOS simulator build..."
+            export CODE_SIGN_IDENTITY="-"
+            export CODE_SIGNING_REQUIRED=NO
+            export CODE_SIGNING_ALLOWED=NO
+          elif [[ "${{ matrix.platform }}" == *"ios"* ]]; then
+            # For device builds, use team if available, otherwise ad-hoc
+            if [ -n "$APPLE_DEVELOPMENT_TEAM" ]; then
+              echo "Using development team for iOS device build: $APPLE_DEVELOPMENT_TEAM"
+              export APPLE_DEVELOPMENT_TEAM
+            else
+              echo "No development team set, using ad-hoc signing for iOS device build"
+              export CODE_SIGN_IDENTITY="-"
+              export CODE_SIGNING_REQUIRED=NO
+            fi
+          fi
           
           # Verify create-dmg for macOS
           if [[ "${{ runner.os }}" == "macOS" ]]; then
@@ -568,6 +698,10 @@ jobs:
               echo "Checking create-dmg availability:"
               which create-dmg || echo "create-dmg not found"
               create-dmg --version || echo "create-dmg version check failed"
+              echo "Checking bundle directory permissions:"
+              find src-tauri/target -path "*/bundle/dmg" -type d -exec ls -ld {} \; 2>/dev/null || true
+              echo "Checking if bundle_dmg.sh can be executed:"
+              find src-tauri/target -name "bundle_dmg.sh" -exec sh -c 'echo "Testing: {}"; head -5 "{}" || true' \; 2>/dev/null || true
             fi
             
             # For Windows, check NSIS issues
@@ -597,29 +731,54 @@ jobs:
           echo "Searching for artifact in: $SEARCH_DIR"
           echo "Looking for files with extension: .$EXT"
           
-          # Find the artifact file by extension in the bundle directory
-          # Tauri may generate files with spaces or different naming, so search by extension
-          if [ -d "$SEARCH_DIR" ]; then
-            # First, try to find by extension in the specific directory
-            ARTIFACT=$(find "$SEARCH_DIR" -maxdepth 1 -type f -name "*.$EXT" 2>/dev/null | grep -v ".sha256" | grep -v ".sha512" | head -n 1)
-            if [ -z "$ARTIFACT" ]; then
-              # Try searching in subdirectories (some bundles create subdirs)
-              ARTIFACT=$(find "$SEARCH_DIR" -type f -name "*.$EXT" 2>/dev/null | grep -v ".sha256" | grep -v ".sha512" | head -n 1)
+          # Check if we're looking for a .app bundle (directory) for iOS simulator
+          if [[ "$EXT" == "app" ]]; then
+            # .app bundles are directories, not files
+            if [ -d "$SEARCH_DIR" ]; then
+              # First, try to find .app directories in the specific directory
+              ARTIFACT=$(find "$SEARCH_DIR" -maxdepth 2 -type d -name "*.app" 2>/dev/null | head -n 1)
+              if [ -z "$ARTIFACT" ]; then
+                # Try searching in subdirectories
+                ARTIFACT=$(find "$SEARCH_DIR" -type d -name "*.app" 2>/dev/null | head -n 1)
+              fi
             fi
-          fi
-          
-          # Fallback: search in all target directories
-          if [ -z "$ARTIFACT" ]; then
-            echo "Not found in $SEARCH_DIR, searching in all target directories..."
-            # For Android, search in gen/android
-            if [[ "${{ matrix.platform }}" == *"android"* ]]; then
-              ARTIFACT=$(find src-tauri/gen/android -type f -name "*.$EXT" 2>/dev/null | grep -v ".sha256" | grep -v ".sha512" | head -n 1)
-            # For iOS, search in gen/ios
-            elif [[ "${{ matrix.platform }}" == *"ios"* ]]; then
-              ARTIFACT=$(find src-tauri/gen/ios -type f -name "*.$EXT" 2>/dev/null | grep -v ".sha256" | grep -v ".sha512" | head -n 1)
-            else
-              # For desktop platforms, search in target directories
-              ARTIFACT=$(find src-tauri/target -type f -name "*.$EXT" 2>/dev/null | grep -v ".sha256" | grep -v ".sha512" | grep -i "bundle" | head -n 1)
+            
+            # Fallback: search in gen/apple and gen/ios for iOS
+            if [ -z "$ARTIFACT" ] && [[ "${{ matrix.platform }}" == *"ios"* ]]; then
+              echo "Not found in $SEARCH_DIR, searching in gen/apple and gen/ios..."
+              ARTIFACT=$(find src-tauri/gen/apple -type d -name "*.app" 2>/dev/null | head -n 1)
+              if [ -z "$ARTIFACT" ]; then
+                ARTIFACT=$(find src-tauri/gen/ios -type d -name "*.app" 2>/dev/null | head -n 1)
+              fi
+            fi
+          else
+            # Find the artifact file by extension in the bundle directory
+            # Tauri may generate files with spaces or different naming, so search by extension
+            if [ -d "$SEARCH_DIR" ]; then
+              # First, try to find by extension in the specific directory
+              ARTIFACT=$(find "$SEARCH_DIR" -maxdepth 1 -type f -name "*.$EXT" 2>/dev/null | grep -v ".sha256" | grep -v ".sha512" | head -n 1)
+              if [ -z "$ARTIFACT" ]; then
+                # Try searching in subdirectories (some bundles create subdirs)
+                ARTIFACT=$(find "$SEARCH_DIR" -type f -name "*.$EXT" 2>/dev/null | grep -v ".sha256" | grep -v ".sha512" | head -n 1)
+              fi
+            fi
+            
+            # Fallback: search in all target directories
+            if [ -z "$ARTIFACT" ]; then
+              echo "Not found in $SEARCH_DIR, searching in all target directories..."
+              # For Android, search in gen/android
+              if [[ "${{ matrix.platform }}" == *"android"* ]]; then
+                ARTIFACT=$(find src-tauri/gen/android -type f -name "*.$EXT" 2>/dev/null | grep -v ".sha256" | grep -v ".sha512" | head -n 1)
+              # For iOS, search in gen/apple and gen/ios
+              elif [[ "${{ matrix.platform }}" == *"ios"* ]]; then
+                ARTIFACT=$(find src-tauri/gen/apple -type f -name "*.$EXT" 2>/dev/null | grep -v ".sha256" | grep -v ".sha512" | head -n 1)
+                if [ -z "$ARTIFACT" ]; then
+                  ARTIFACT=$(find src-tauri/gen/ios -type f -name "*.$EXT" 2>/dev/null | grep -v ".sha256" | grep -v ".sha512" | head -n 1)
+                fi
+              else
+                # For desktop platforms, search in target directories
+                ARTIFACT=$(find src-tauri/target -type f -name "*.$EXT" 2>/dev/null | grep -v ".sha256" | grep -v ".sha512" | grep -i "bundle" | head -n 1)
+              fi
             fi
           fi
           
@@ -631,7 +790,8 @@ jobs:
             find src-tauri/target -path "*/bundle/*" -type f \( -name "*.$EXT" -o -name "*.exe" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.tar.gz" \) 2>/dev/null | head -10 || true
             # Also check Android and iOS directories
             find src-tauri/gen/android -type f -name "*.apk" 2>/dev/null | head -5 || true
-            find src-tauri/gen/ios -type f \( -name "*.ipa" -o -name "*.app" \) 2>/dev/null | head -5 || true
+            find src-tauri/gen/apple -type d -name "*.app" 2>/dev/null | head -5 || true
+            find src-tauri/gen/ios -type f \( -name "*.ipa" -o -name "*.app" \) -o -type d -name "*.app" 2>/dev/null | head -5 || true
             exit 1
           fi
           
@@ -653,8 +813,14 @@ jobs:
           FINAL_NAME="restaurant-management-system-${{ matrix.platform }}-$FINAL_VERSION.$EXT"
           
           # Copy artifact with versioned name
-          cp "$ARTIFACT" "$FINAL_NAME"
-          echo "Copied artifact: $ARTIFACT -> $FINAL_NAME"
+          # For .app bundles (directories), use cp -R; for files, use cp
+          if [ -d "$ARTIFACT" ]; then
+            cp -R "$ARTIFACT" "$FINAL_NAME"
+            echo "Copied artifact directory: $ARTIFACT -> $FINAL_NAME"
+          else
+            cp "$ARTIFACT" "$FINAL_NAME"
+            echo "Copied artifact file: $ARTIFACT -> $FINAL_NAME"
+          fi
           
           # Set output for use in checksum step
           echo "artifact_file=$FINAL_NAME" >> $GITHUB_OUTPUT
@@ -667,6 +833,19 @@ jobs:
           if [ -z "$ARTIFACT_FILE" ]; then
             # Fallback to matrix name if output not set
             ARTIFACT_FILE="${{ matrix.artifact-name }}"
+          fi
+          
+          # For .app bundles (directories), create a zip archive first for checksums
+          ORIGINAL_ARTIFACT="$ARTIFACT_FILE"
+          if [ -d "$ARTIFACT_FILE" ]; then
+            echo "Creating archive for .app bundle: $ARTIFACT_FILE"
+            ARCHIVE_NAME="${ARTIFACT_FILE%.app}.zip"
+            cd "$(dirname "$ARTIFACT_FILE")"
+            zip -r "$ARCHIVE_NAME" "$(basename "$ARTIFACT_FILE")" > /dev/null
+            ARTIFACT_FILE="$ARCHIVE_NAME"
+            echo "Created archive: $ARCHIVE_NAME"
+            # Output archive name for upload step
+            echo "archive_file=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
           fi
           
           if [ -f "$ARTIFACT_FILE" ]; then
@@ -694,6 +873,7 @@ jobs:
             ${{ steps.find_artifact.outputs.artifact_file }}
             ${{ steps.find_artifact.outputs.artifact_file }}.sha256
             ${{ steps.find_artifact.outputs.artifact_file }}.sha512
+            ${{ steps.checksums.outputs.archive_file }}
           if-no-files-found: warn
           retention-days: 30
 
