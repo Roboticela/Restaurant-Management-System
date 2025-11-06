@@ -8,7 +8,7 @@ set -e
 KEYSTORE_DIR="${KEYSTORE_DIR:-src-tauri/gen/android/keystore}"
 KEYSTORE_NAME="${KEYSTORE_NAME:-release-key.jks}"
 KEYSTORE_PATH="$KEYSTORE_DIR/$KEYSTORE_NAME"
-KEY_ALIAS="${KEY_ALIAS:-my-alias}"
+KEY_ALIAS="${KEY_ALIAS:-roboticela}"
 
 echo "🔐 Android Release Keystore Generator"
 echo "======================================"
