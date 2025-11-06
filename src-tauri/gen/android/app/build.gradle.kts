@@ -26,12 +26,26 @@ android {
     }
     signingConfigs {
         create("release") {
-            // Use debug keystore for release builds (for development/testing)
-            // For production, replace with proper release keystore configuration
-            storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
-            storePassword = "android"
-            keyAlias = "androiddebugkey"
-            keyPassword = "android"
+            // Check for release keystore from environment variables (for CI/CD)
+            val keystorePath = System.getenv("ANDROID_KEYSTORE_PATH")
+            val keystorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
+            val keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: "my-alias"
+            val keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: keystorePassword
+            
+            if (keystorePath != null && keystorePassword != null) {
+                // Use release keystore from environment variables
+                storeFile = file(keystorePath)
+                storePassword = keystorePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword ?: keystorePassword
+            } else {
+                // Fallback to debug keystore (for development/testing)
+                // For production, set ANDROID_KEYSTORE_PATH and related env vars
+                storeFile = file("${System.getProperty("user.home")}/.android/debug.keystore")
+                storePassword = "android"
+                this.keyAlias = "androiddebugkey"
+                this.keyPassword = "android"
+            }
         }
     }
     buildTypes {

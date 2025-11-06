@@ -27,3 +27,8 @@ dist-ssr
 
 # Build artifacts and checksums are generated, don't commit
 src-tauri/target/
+
+# Android keystore files (NEVER commit these!)
+*.jks
+*.keystore
+src-tauri/gen/android/keystore/

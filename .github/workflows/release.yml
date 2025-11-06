@@ -261,13 +261,53 @@ jobs:
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
           echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
 
+      - name: Setup Android release keystore (for Android builds)
+        if: contains(matrix.platform, 'android')
+        run: |
+          # Check if release keystore secrets are available
+          if [ -n "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" ] && [ -n "${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" ]; then
+            echo "Setting up release keystore from secrets..."
+            
+            # Create keystore directory
+            KEYSTORE_DIR="$HOME/.android/keystore"
+            mkdir -p "$KEYSTORE_DIR"
+            
+            # Decode base64 keystore file
+            echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$KEYSTORE_DIR/release-key.jks"
+            
+            # Set environment variables for Gradle build
+            KEY_ALIAS="${{ secrets.ANDROID_KEY_ALIAS }}"
+            if [ -z "$KEY_ALIAS" ]; then
+              KEY_ALIAS="my-alias"
+            fi
+            
+            KEY_PASSWORD="${{ secrets.ANDROID_KEY_PASSWORD }}"
+            if [ -z "$KEY_PASSWORD" ]; then
+              KEY_PASSWORD="${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
+            fi
+            
+            echo "ANDROID_KEYSTORE_PATH=$KEYSTORE_DIR/release-key.jks" >> $GITHUB_ENV
+            echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}" >> $GITHUB_ENV
+            echo "ANDROID_KEY_ALIAS=$KEY_ALIAS" >> $GITHUB_ENV
+            echo "ANDROID_KEY_PASSWORD=$KEY_PASSWORD" >> $GITHUB_ENV
+            
+            echo "✅ Release keystore configured"
+          else
+            echo "⚠️  Release keystore secrets not found, will use debug keystore"
+            echo "   To use release signing, set these GitHub secrets:"
+            echo "   - ANDROID_KEYSTORE_BASE64 (base64 encoded .jks file)"
+            echo "   - ANDROID_KEYSTORE_PASSWORD"
+            echo "   - ANDROID_KEY_ALIAS (optional, defaults to 'my-alias')"
+            echo "   - ANDROID_KEY_PASSWORD (optional, defaults to keystore password)"
+          fi
+
       - name: Create Android debug keystore (for Android builds)
         if: contains(matrix.platform, 'android')
         run: |
           # Create .android directory if it doesn't exist
           mkdir -p "$HOME/.android"
           
-          # Check if debug keystore already exists\
+          # Check if debug keystore already exists
           if [ ! -f "$HOME/.android/debug.keystore" ]; then
             echo "Creating debug keystore for Android signing..."
             # Generate debug keystore with default password
