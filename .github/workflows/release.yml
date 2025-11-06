@@ -130,11 +130,57 @@ jobs:
       - name: Build Vite app
         run: pnpm build
 
+      - name: Verify build artifacts exist
+        shell: bash
+        run: |
+          echo "Verifying frontend build..."
+          if [ ! -d "dist" ]; then
+            echo "Error: dist directory not found!"
+            exit 1
+          fi
+          echo "dist directory exists with $(find dist -type f | wc -l) files"
+          ls -la dist/ | head -10
+          
+          echo "Verifying required files..."
+          if [ ! -f "LICENSE" ]; then
+            echo "Error: LICENSE file not found in project root!"
+            exit 1
+          fi
+          echo "✓ LICENSE found"
+          
+          if [ ! -f "src-tauri/icons/icon.ico" ]; then
+            echo "Error: icon.ico not found!"
+            exit 1
+          fi
+          echo "✓ icon.ico found"
+          
+          # Verify dist/index.html exists
+          if [ ! -f "dist/index.html" ]; then
+            echo "Error: dist/index.html not found!"
+            exit 1
+          fi
+          echo "✓ dist/index.html found"
+          
+          echo "All required files verified"
+
       - name: Build platform-specific artifact
         shell: bash
         run: |
-          ${{ matrix.build-command }}
-        continue-on-error: true
+          echo "Building for ${{ matrix.platform }}..."
+          echo "Working directory: $(pwd)"
+          echo "Contents of dist:"
+          ls -la dist/ | head -5 || true
+          echo "Running: ${{ matrix.build-command }}"
+          ${{ matrix.build-command }} 2>&1 | tee build.log || {
+            echo "Build failed. Checking for common issues..."
+            echo "NSIS might be looking for files. Checking bundle directory:"
+            find src-tauri/target -path "*/bundle/*" -type f 2>/dev/null | head -10 || true
+            echo "Checking if dist directory is accessible from src-tauri:"
+            ls -la src-tauri/../dist/ 2>/dev/null || echo "Cannot access dist from src-tauri"
+            cat build.log || true
+            exit 1
+          }
+        continue-on-error: false
 
       - name: Find and rename artifact
         id: find_artifact
