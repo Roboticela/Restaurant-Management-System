@@ -251,6 +251,10 @@ jobs:
             sudo dpkg --add-architecture aarch64 || true
             sudo apt-get update || true
             
+            # Check if ARM64 packages are available
+            echo "Checking availability of ARM64 packages..."
+            apt-cache policy libglib2.0-dev:aarch64 || echo "libglib2.0-dev:aarch64 not found in repositories"
+            
             # Install cross-compilation toolchain
             sudo apt-get install -y \
               gcc-aarch64-linux-gnu \
@@ -267,12 +271,34 @@ jobs:
             fi
               
             # Try to install ARM64 libraries (may not be available in all repos)
+            echo "Attempting to install ARM64 development libraries..."
             sudo apt-get install -y \
               libwebkit2gtk-4.1-dev:aarch64 \
               libappindicator3-dev:aarch64 \
               librsvg2-dev:aarch64 \
               libgtk-3-dev:aarch64 \
-              libglib2.0-dev:aarch64 || echo "ARM64 libraries may not be available - cross-compilation may fail"
+              libglib2.0-dev:aarch64 \
+              libgdk-pixbuf-2.0-dev:aarch64 \
+              libpango1.0-dev:aarch64 \
+              libatk1.0-dev:aarch64 \
+              libcairo2-dev:aarch64 \
+              libgirepository1.0-dev:aarch64 2>&1 | tee /tmp/arm64_install.log || {
+              echo "Warning: Some ARM64 libraries failed to install. Checking what's available..."
+              cat /tmp/arm64_install.log || true
+            }
+            
+            # Verify pkg-config files are installed
+            echo "Checking for glib-2.0.pc..."
+            find /usr -name "glib-2.0.pc" 2>/dev/null | head -5 || echo "glib-2.0.pc not found in /usr"
+            echo "Checking ARM64 pkg-config directory..."
+            ls -la /usr/lib/aarch64-linux-gnu/pkgconfig/ 2>/dev/null || echo "ARM64 pkg-config directory not found"
+            
+            # Try alternative paths
+            if [ ! -f "/usr/lib/aarch64-linux-gnu/pkgconfig/glib-2.0.pc" ]; then
+              echo "glib-2.0.pc not found in expected location. Trying to find alternative locations..."
+              # Check if we can find it elsewhere or need to install differently
+              apt-cache search libglib2.0-dev | grep aarch64 || echo "No aarch64 glib packages found in cache"
+            fi
             
             # Set up pkg-config for cross-compilation
             export PKG_CONFIG_ALLOW_CROSS=1

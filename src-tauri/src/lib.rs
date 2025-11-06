@@ -4,11 +4,11 @@ mod email;
 use database::*;
 use tauri::AppHandle;
 
-#[cfg(not(target_os = "android"))]
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use tauri::Manager;
-#[cfg(not(target_os = "android"))]
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use std::fs;
-#[cfg(not(target_os = "android"))]
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use std::path::PathBuf;
 
 // Load environment variables at startup
@@ -99,7 +99,7 @@ fn send_support_email(
 }
 
 // Helper function to get window state file path (desktop only)
-#[cfg(not(target_os = "android"))]
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 fn get_window_state_path(app: &AppHandle) -> Result<PathBuf, String> {
     let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
     fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
@@ -107,7 +107,7 @@ fn get_window_state_path(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 // Helper function to save window state (desktop only)
-#[cfg(not(target_os = "android"))]
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 fn save_window_state(app: &AppHandle, is_maximized: bool) -> Result<(), String> {
     let path = get_window_state_path(app)?;
     let state = serde_json::json!({
@@ -118,7 +118,7 @@ fn save_window_state(app: &AppHandle, is_maximized: bool) -> Result<(), String> 
 }
 
 // Helper function to load window state (desktop only)
-#[cfg(not(target_os = "android"))]
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 fn load_window_state(app: &AppHandle) -> Result<bool, String> {
     let path = get_window_state_path(app)?;
     if path.exists() {
@@ -144,7 +144,7 @@ pub fn run() {
             database::initialize_database(&db_path).map_err(|e| e.to_string())?;
             
             // Setup window state management (desktop only)
-            #[cfg(not(target_os = "android"))]
+            #[cfg(not(any(target_os = "android", target_os = "ios")))]
             {
                 let window = app.get_webview_window("main").unwrap();
                 
