@@ -710,7 +710,7 @@ jobs:
           echo "# Generated on $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> checksums-sha512.txt
           echo "" >> checksums-sha512.txt
           
-          find . -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.tar.gz" -o -name "*.apk" -o -name "*.ipa" -o -name "*.zip" \) ! -name "*.sha*" ! -path "*/\.app/*" | while read file; do
+          find . -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.tar.gz" -o -name "*.apk" -o -name "*.ipa" -o -name "*.zip" -o -name "*.gz" \) ! -name "*.sha*" ! -path "*/*.app/*" ! -name "*.nib" ! -name "Info.plist" ! -name "PkgInfo" ! -name "CodeResources" ! -name "Assets.car" ! -name "AppIcon*.png" ! -name "Restaurant Management System" | while read file; do
             filename=$(basename "$file")
             dirname=$(dirname "$file" | sed 's|^\./||')
             if [ "$dirname" != "." ]; then
@@ -735,6 +735,16 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
+      - name: Clean up artifacts directory
+        shell: bash
+        run: |
+          cd artifacts
+          # Remove any .app directories that might have been extracted
+          find . -type d -name "*.app" -exec rm -rf {} + 2>/dev/null || true
+          # Remove any individual files that shouldn't be in releases (nib, plist, png icons, etc.)
+          find . -type f \( -name "*.nib" -o -name "Info.plist" -o -name "PkgInfo" -o -name "CodeResources" -o -name "Assets.car" -o -name "AppIcon*.png" -o -name "Restaurant Management System" \) -delete 2>/dev/null || true
+          echo "Cleaned up artifacts directory"
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -749,6 +759,7 @@ jobs:
             artifacts/**/*.apk
             artifacts/**/*.ipa
             artifacts/**/*.zip
+            artifacts/**/*.gz
             artifacts/**/*.sha256
             artifacts/**/*.sha512
             artifacts/checksums-*.txt
