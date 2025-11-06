@@ -209,56 +209,58 @@ jobs:
           ARTIFACT_NAME="${{ matrix.artifact-name }}"
           EXT="${ARTIFACT_NAME##*.}"
           
-          # Construct the search directory and pattern
+          # Construct the search directory
           SEARCH_DIR=$(dirname "${{ matrix.artifact-path }}")
-          PATTERN=$(basename "${{ matrix.artifact-path }}" | sed 's/\*/.*/')
           
           echo "Searching for artifact in: $SEARCH_DIR"
-          echo "Pattern: $PATTERN"
+          echo "Looking for files with extension: .$EXT"
           
-          # Find the artifact file - search in the specific bundle directory
+          # Find the artifact file by extension in the bundle directory
+          # Tauri may generate files with spaces or different naming, so search by extension
           if [ -d "$SEARCH_DIR" ]; then
-            ARTIFACT=$(find "$SEARCH_DIR" -type f -name "$PATTERN" 2>/dev/null | head -n 1)
-          else
-            # Fallback: search in all target directories
-            ARTIFACT=$(find src-tauri/target -type f -name "$PATTERN" 2>/dev/null | head -n 1)
+            # First, try to find by extension in the specific directory
+            ARTIFACT=$(find "$SEARCH_DIR" -maxdepth 1 -type f -name "*.$EXT" 2>/dev/null | grep -v ".sha256" | grep -v ".sha512" | head -n 1)
+            if [ -z "$ARTIFACT" ]; then
+              # Try searching in subdirectories (some bundles create subdirs)
+              ARTIFACT=$(find "$SEARCH_DIR" -type f -name "*.$EXT" 2>/dev/null | grep -v ".sha256" | grep -v ".sha512" | head -n 1)
+            fi
+          fi
+          
+          # Fallback: search in all target directories
+          if [ -z "$ARTIFACT" ]; then
+            echo "Not found in $SEARCH_DIR, searching in all target directories..."
+            ARTIFACT=$(find src-tauri/target -type f -name "*.$EXT" 2>/dev/null | grep -v ".sha256" | grep -v ".sha512" | grep -i "bundle" | head -n 1)
           fi
           
           if [ -z "$ARTIFACT" ]; then
-            # Last resort: list files in the expected directory
-            echo "Warning: Artifact not found with pattern $PATTERN"
+            echo "Error: Artifact not found with extension .$EXT"
             echo "Contents of $SEARCH_DIR:"
             ls -la "$SEARCH_DIR" 2>/dev/null || true
             echo "Searching in all bundle directories:"
-            find src-tauri/target -path "*/bundle/*" -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.tar.gz" \) 2>/dev/null | head -5 || true
+            find src-tauri/target -path "*/bundle/*" -type f \( -name "*.$EXT" -o -name "*.exe" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.tar.gz" \) 2>/dev/null | head -10 || true
             exit 1
           fi
           
+          echo "Found artifact: $ARTIFACT"
+          
           # Create versioned filename: restaurant-management-system-platform-version.ext
           ORIGINAL_BASE=$(basename "$ARTIFACT")
-          EXT="${ORIGINAL_BASE##*.}"
           
-          # Remove extension for processing
-          NAME_NO_EXT="${ORIGINAL_BASE%.*}"
-          
-          # Tauri generates files like: restaurant-management-system_0.1.0_x64_en-US
-          # We want: restaurant-management-system-windows-x64-0.1.0
-          # Remove everything after the version number (arch, locale, etc.)
-          if echo "$NAME_NO_EXT" | grep -qE "_[0-9]+\.[0-9]+\.[0-9]+"; then
-            # Extract version number
-            VERSION_IN_FILE=$(echo "$NAME_NO_EXT" | grep -oE "_[0-9]+\.[0-9]+\.[0-9]+" | sed 's/_//')
-            # Use our version if available, otherwise use the one in filename
+          # Extract version from filename if present, otherwise use our version
+          if echo "$ORIGINAL_BASE" | grep -qE "_[0-9]+\.[0-9]+\.[0-9]+"; then
+            # Extract version number from filename
+            VERSION_IN_FILE=$(echo "$ORIGINAL_BASE" | grep -oE "_[0-9]+\.[0-9]+\.[0-9]+" | head -1 | sed 's/_//')
             FINAL_VERSION="${VERSION:-$VERSION_IN_FILE}"
-            # Create new name: restaurant-management-system-platform-version
-            FINAL_NAME="restaurant-management-system-${{ matrix.platform }}-$FINAL_VERSION.$EXT"
           else
-            # No version in filename, use our version
-            FINAL_NAME="restaurant-management-system-${{ matrix.platform }}-$VERSION.$EXT"
+            FINAL_VERSION="$VERSION"
           fi
+          
+          # Create new name: restaurant-management-system-platform-version.ext
+          FINAL_NAME="restaurant-management-system-${{ matrix.platform }}-$FINAL_VERSION.$EXT"
           
           # Copy artifact with versioned name
           cp "$ARTIFACT" "$FINAL_NAME"
-          echo "Found and copied artifact: $ARTIFACT -> $FINAL_NAME"
+          echo "Copied artifact: $ARTIFACT -> $FINAL_NAME"
           
           # Set output for use in checksum step
           echo "artifact_file=$FINAL_NAME" >> $GITHUB_OUTPUT
