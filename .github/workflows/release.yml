@@ -127,44 +127,44 @@ jobs:
           - platform: android-aarch64
             runs-on: ubuntu-latest
             artifact-name: restaurant-management-system-aarch64.apk
-            build-command: pnpm tauri android build --target aarch64 --apk
+            build-command: pnpm tauri android build --target aarch64 --apk true
             artifact-path: src-tauri/gen/android/app/build/outputs/apk/release/app-release.apk
             
           - platform: android-armv7
             runs-on: ubuntu-latest
             artifact-name: restaurant-management-system-armv7.apk
-            build-command: pnpm tauri android build --target armv7 --apk
+            build-command: pnpm tauri android build --target armv7 --apk true
             artifact-path: src-tauri/gen/android/app/build/outputs/apk/release/app-release.apk
             
           - platform: android-x86_64
             runs-on: ubuntu-latest
             artifact-name: restaurant-management-system-x86_64.apk
-            build-command: pnpm tauri android build --target x86_64 --apk
+            build-command: pnpm tauri android build --target x86_64 --apk true
             artifact-path: src-tauri/gen/android/app/build/outputs/apk/release/app-release.apk
             
           - platform: android-i686
             runs-on: ubuntu-latest
             artifact-name: restaurant-management-system-i686.apk
-            build-command: pnpm tauri android build --target i686 --apk
+            build-command: pnpm tauri android build --target i686 --apk true
             artifact-path: src-tauri/gen/android/app/build/outputs/apk/release/app-release.apk
             
           # iOS builds
           - platform: ios-aarch64
             runs-on: macos-latest
             artifact-name: restaurant-management-system.ipa
-            build-command: pnpm tauri ios build --target aarch64-apple-ios
+            build-command: pnpm tauri ios build --target aarch64
             artifact-path: src-tauri/gen/ios/build/Build/Products/Release-iphoneos/*.ipa
             
           - platform: ios-simulator-aarch64
             runs-on: macos-latest
             artifact-name: restaurant-management-system-simulator.ipa
-            build-command: pnpm tauri ios build --target aarch64-apple-ios-sim
+            build-command: pnpm tauri ios build --target aarch64-sim
             artifact-path: src-tauri/gen/ios/build/Build/Products/Release-iphonesimulator/*.app
             
           - platform: ios-simulator-x86_64
             runs-on: macos-latest
             artifact-name: restaurant-management-system-simulator-x86_64.ipa
-            build-command: pnpm tauri ios build --target x86_64-apple-ios
+            build-command: pnpm tauri ios build --target x86_64
             artifact-path: src-tauri/gen/ios/build/Build/Products/Release-iphonesimulator/*.app
 
     steps:
@@ -290,6 +290,8 @@ jobs:
           sudo xcode-select --switch /Applications/Xcode.app/Contents/Developer
           sudo xcodebuild -license accept || true
           # Install iOS dependencies
+          # Tauri iOS uses simplified target names (aarch64, aarch64-sim, x86_64)
+          # but Rust still needs full target names for compilation
           rustup target add aarch64-apple-ios || true
           rustup target add aarch64-apple-ios-sim || true
           rustup target add x86_64-apple-ios || echo "x86_64-apple-ios target may not be available"
