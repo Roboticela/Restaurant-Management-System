@@ -233,46 +233,49 @@ jobs:
       - name: Build platform-specific artifact
         shell: bash
         run: |
+          set -e
           # Ensure basic commands are available by setting PATH properly
-          export PATH="/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:$PATH"
+          # Use the existing PATH and prepend system directories
+          ORIGINAL_PATH="${PATH:-/usr/bin:/bin}"
+          export PATH="/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:${ORIGINAL_PATH}"
           
           echo "Building for ${{ matrix.platform }}..."
           echo "Working directory: $(pwd)"
-          echo "PATH: $PATH"
+          echo "PATH: ${PATH}"
           echo "Contents of dist:"
-          ls -la dist/ | head -5 || true
+          /bin/ls -la dist/ | /usr/bin/head -5 || true
           echo "Running: ${{ matrix.build-command }}"
           
           # For macOS, ensure PATH includes homebrew
           if [[ "${{ runner.os }}" == "macOS" ]]; then
-            export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:$PATH"
-            echo "PATH set to: $PATH"
-            which create-dmg || echo "Warning: create-dmg not in PATH"
+            export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:${ORIGINAL_PATH}"
+            echo "PATH set to: ${PATH}"
+            /usr/bin/which create-dmg || echo "Warning: create-dmg not in PATH"
           fi
           
-          ${{ matrix.build-command }} 2>&1 | tee build.log || {
+          ${{ matrix.build-command }} 2>&1 | /usr/bin/tee build.log || {
             echo "Build failed. Checking for common issues..."
             
             # For macOS, check if bundle_dmg.sh exists and has permissions
             if [[ "${{ runner.os }}" == "macOS" ]]; then
               echo "Checking for DMG bundling scripts:"
-              find src-tauri/target -name "bundle_dmg.sh" -exec ls -la {} \; 2>/dev/null || true
+              /usr/bin/find src-tauri/target -name "bundle_dmg.sh" -exec /bin/ls -la {} \; 2>/dev/null || true
               # Try to fix permissions and retry if script exists
-              find src-tauri/target -name "bundle_dmg.sh" -exec chmod +x {} \; 2>/dev/null || true
+              /usr/bin/find src-tauri/target -name "bundle_dmg.sh" -exec /bin/chmod +x {} \; 2>/dev/null || true
               echo "Checking create-dmg availability:"
-              which create-dmg || echo "create-dmg not found"
+              /usr/bin/which create-dmg || echo "create-dmg not found"
               create-dmg --version || echo "create-dmg version check failed"
             fi
             
             # For Windows, check NSIS issues
             if [[ "${{ runner.os }}" == "Windows" ]]; then
               echo "NSIS might be looking for files. Checking bundle directory:"
-              find src-tauri/target -path "*/bundle/*" -type f 2>/dev/null | head -10 || true
+              /usr/bin/find src-tauri/target -path "*/bundle/*" -type f 2>/dev/null | /usr/bin/head -10 || true
               echo "Checking if dist directory is accessible from src-tauri:"
-              ls -la src-tauri/../dist/ 2>/dev/null || echo "Cannot access dist from src-tauri"
+              /bin/ls -la src-tauri/../dist/ 2>/dev/null || echo "Cannot access dist from src-tauri"
             fi
             
-            cat build.log || true
+            /bin/cat build.log || true
             exit 1
           }
         continue-on-error: false
