@@ -644,9 +644,15 @@ jobs:
             ARCHIVE_NAME="${ARTIFACT_FILE%.app}.zip"
             cd "$(dirname "$ARTIFACT_FILE")"
             zip -r "$ARCHIVE_NAME" "$(basename "$ARTIFACT_FILE")" > /dev/null
-            ARTIFACT_FILE="$ARCHIVE_NAME"
             echo "Created archive: $ARCHIVE_NAME"
-            # Output archive name for upload step
+            # Remove the .app directory since we only want the zip
+            rm -rf "$ORIGINAL_ARTIFACT"
+            echo "Removed .app directory, keeping only zip archive"
+            # Update ARTIFACT_FILE to point to the zip
+            ARTIFACT_FILE="$ARCHIVE_NAME"
+            # Update the artifact_file output to point to the zip
+            echo "artifact_file=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
+            # Output archive name for reference (same as artifact_file now)
             echo "archive_file=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
           fi
           
@@ -672,10 +678,9 @@ jobs:
         with:
           name: ${{ matrix.platform }}
           path: |
-            ${{ steps.find_artifact.outputs.artifact_file }}
-            ${{ steps.find_artifact.outputs.artifact_file }}.sha256
-            ${{ steps.find_artifact.outputs.artifact_file }}.sha512
-            ${{ steps.checksums.outputs.archive_file }}
+            ${{ steps.checksums.outputs.artifact_file || steps.find_artifact.outputs.artifact_file }}
+            ${{ steps.checksums.outputs.artifact_file || steps.find_artifact.outputs.artifact_file }}.sha256
+            ${{ steps.checksums.outputs.artifact_file || steps.find_artifact.outputs.artifact_file }}.sha512
           if-no-files-found: warn
           retention-days: 30
 
@@ -705,7 +710,7 @@ jobs:
           echo "# Generated on $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> checksums-sha512.txt
           echo "" >> checksums-sha512.txt
           
-          find . -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.tar.gz" -o -name "*.apk" -o -name "*.ipa" \) ! -name "*.sha*" | while read file; do
+          find . -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.tar.gz" -o -name "*.apk" -o -name "*.ipa" -o -name "*.zip" \) ! -name "*.sha*" ! -path "*/\.app/*" | while read file; do
             filename=$(basename "$file")
             dirname=$(dirname "$file" | sed 's|^\./||')
             if [ "$dirname" != "." ]; then
@@ -734,7 +739,18 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            artifacts/**/*
+            artifacts/**/*.exe
+            artifacts/**/*.msi
+            artifacts/**/*.AppImage
+            artifacts/**/*.deb
+            artifacts/**/*.rpm
+            artifacts/**/*.dmg
+            artifacts/**/*.tar.gz
+            artifacts/**/*.apk
+            artifacts/**/*.ipa
+            artifacts/**/*.zip
+            artifacts/**/*.sha256
+            artifacts/**/*.sha512
             artifacts/checksums-*.txt
           draft: ${{ github.event.inputs.draft || (github.event_name == 'workflow_dispatch' && !github.event.inputs.version) }}
           prerelease: false
