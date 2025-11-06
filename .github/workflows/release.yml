@@ -72,7 +72,7 @@ jobs:
           - platform: macos-x64-app
             runs-on: macos-latest
             artifact-name: restaurant-management-system.app.tar.gz
-            build-command: pnpm tauri build --bundles app --target x86_64-apple-darwin && tar -czf restaurant-management-system.app.tar.gz -C src-tauri/target/x86_64-apple-darwin/release/bundle/macos/restaurant-management-system.app .
+            build-command: pnpm tauri build --bundles app --target x86_64-apple-darwin && APP_BUNDLE=$(find src-tauri/target/x86_64-apple-darwin/release/bundle/macos -name "*.app" -type d | head -1) && tar -czf restaurant-management-system.app.tar.gz -C "$(dirname "$APP_BUNDLE")" "$(basename "$APP_BUNDLE")"
             artifact-path: restaurant-management-system.app.tar.gz
 
     steps:
