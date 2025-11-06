@@ -46,7 +46,8 @@
     ],
     "createUpdaterArtifacts": false,
     "macOS": {
-      "minimumSystemVersion": "10.13"
+      "minimumSystemVersion": "10.13",
+      "icon": "icons/icon.icns"
     },
     "windows": {
       "digestAlgorithm": "sha256",
@@ -62,7 +63,9 @@
         "depends": []
       }
     },
-    "iOS": {},
+    "iOS": {
+      "icon": "icons/icon.png"
+    },
     "android": {}
   },
   "plugins": {

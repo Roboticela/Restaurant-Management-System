@@ -698,6 +698,38 @@ jobs:
         with:
           path: artifacts
 
+      - name: Clean up artifacts directory
+        shell: bash
+        run: |
+          cd artifacts
+          echo "Contents before cleanup:"
+          find . -type f -o -type d | head -20 || true
+          
+          # Remove any .app directories that might have been extracted
+          find . -type d -name "*.app" -exec rm -rf {} + 2>/dev/null || true
+          
+          # Remove any individual files that shouldn't be in releases
+          # iOS/macOS bundle contents
+          find . -type f \( \
+            -name "*.nib" \
+            -o -name "Info.plist" \
+            -o -name "PkgInfo" \
+            -o -name "CodeResources" \
+            -o -name "Assets.car" \
+            -o -name "AppIcon*.png" \
+            -o -name "AppIcon*.ipad.png" \
+            -o -name "Restaurant Management System" \
+            -o -name "*.app/Contents/*" \
+          \) -delete 2>/dev/null || true
+          
+          # Remove any nested directories that might contain bundle contents
+          find . -type d -name "Contents" -exec rm -rf {} + 2>/dev/null || true
+          find . -type d -name "Resources" -exec rm -rf {} + 2>/dev/null || true
+          
+          echo "Contents after cleanup:"
+          find . -type f | head -20 || true
+          echo "Cleaned up artifacts directory"
+
       - name: Generate combined checksums
         shell: bash
         run: |
@@ -710,7 +742,31 @@ jobs:
           echo "# Generated on $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> checksums-sha512.txt
           echo "" >> checksums-sha512.txt
           
-          find . -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.AppImage" -o -name "*.deb" -o -name "*.rpm" -o -name "*.dmg" -o -name "*.tar.gz" -o -name "*.apk" -o -name "*.ipa" -o -name "*.zip" -o -name "*.gz" \) ! -name "*.sha*" ! -path "*/*.app/*" ! -name "*.nib" ! -name "Info.plist" ! -name "PkgInfo" ! -name "CodeResources" ! -name "Assets.car" ! -name "AppIcon*.png" ! -name "Restaurant Management System" | while read file; do
+          # Only include actual artifact files, explicitly exclude unwanted files
+          find . -type f \( \
+            -name "*.exe" \
+            -o -name "*.msi" \
+            -o -name "*.AppImage" \
+            -o -name "*.deb" \
+            -o -name "*.rpm" \
+            -o -name "*.dmg" \
+            -o -name "*.tar.gz" \
+            -o -name "*.apk" \
+            -o -name "*.ipa" \
+            -o -name "*.zip" \
+            -o -name "*.gz" \
+          \) ! -name "*.sha*" \
+          ! -name "*.nib" \
+          ! -name "Info.plist" \
+          ! -name "PkgInfo" \
+          ! -name "CodeResources" \
+          ! -name "Assets.car" \
+          ! -name "AppIcon*.png" \
+          ! -name "Restaurant Management System" \
+          ! -path "*/Contents/*" \
+          ! -path "*/Resources/*" \
+          ! -path "*/*.app/*" \
+          | while read file; do
             filename=$(basename "$file")
             dirname=$(dirname "$file" | sed 's|^\./||')
             if [ "$dirname" != "." ]; then
@@ -735,34 +791,67 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
-      - name: Clean up artifacts directory
+      - name: Prepare clean release directory
         shell: bash
         run: |
+          mkdir -p release-artifacts
           cd artifacts
-          # Remove any .app directories that might have been extracted
-          find . -type d -name "*.app" -exec rm -rf {} + 2>/dev/null || true
-          # Remove any individual files that shouldn't be in releases (nib, plist, png icons, etc.)
-          find . -type f \( -name "*.nib" -o -name "Info.plist" -o -name "PkgInfo" -o -name "CodeResources" -o -name "Assets.car" -o -name "AppIcon*.png" -o -name "Restaurant Management System" \) -delete 2>/dev/null || true
-          echo "Cleaned up artifacts directory"
+          
+          echo "Copying valid artifacts to clean directory..."
+          
+          # Copy only valid artifact files to a clean directory
+          # Use a while loop to handle filenames with spaces correctly
+          find . -type f \( \
+            -name "*.exe" \
+            -o -name "*.msi" \
+            -o -name "*.AppImage" \
+            -o -name "*.deb" \
+            -o -name "*.rpm" \
+            -o -name "*.dmg" \
+            -o -name "*.tar.gz" \
+            -o -name "*.apk" \
+            -o -name "*.ipa" \
+            -o -name "*.zip" \
+            -o -name "*.gz" \
+            -o -name "*.sha256" \
+            -o -name "*.sha512" \
+            -o -name "checksums-*.txt" \
+          \) ! -name "*.nib" \
+          ! -name "Info.plist" \
+          ! -name "PkgInfo" \
+          ! -name "CodeResources" \
+          ! -name "Assets.car" \
+          ! -name "AppIcon*.png" \
+          ! -name "AppIcon*.ipad.png" \
+          ! -name "Restaurant Management System" \
+          ! -path "*/Contents/*" \
+          ! -path "*/Resources/*" \
+          ! -path "*/*.app/*" \
+          | while IFS= read -r file; do
+            # Get just the filename
+            filename=$(basename "$file")
+            # Copy to release-artifacts, flattening the structure
+            cp "$file" "../release-artifacts/$filename"
+          done
+          
+          cd ../release-artifacts
+          echo "Files in clean release directory:"
+          ls -lah | head -30 || true
+          
+          # Verify no unwanted files
+          if find . -type f \( -name "*.nib" -o -name "Info.plist" -o -name "PkgInfo" -o -name "CodeResources" -o -name "Assets.car" -o -name "AppIcon*.png" \) 2>/dev/null | grep -q .; then
+            echo "ERROR: Found unwanted files in release directory!"
+            find . -type f \( -name "*.nib" -o -name "Info.plist" -o -name "PkgInfo" -o -name "CodeResources" -o -name "Assets.car" -o -name "AppIcon*.png" \)
+            exit 1
+          fi
+          
+          echo "Clean directory verified - only valid artifacts present"
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            artifacts/**/*.exe
-            artifacts/**/*.msi
-            artifacts/**/*.AppImage
-            artifacts/**/*.deb
-            artifacts/**/*.rpm
-            artifacts/**/*.dmg
-            artifacts/**/*.tar.gz
-            artifacts/**/*.apk
-            artifacts/**/*.ipa
-            artifacts/**/*.zip
-            artifacts/**/*.gz
-            artifacts/**/*.sha256
-            artifacts/**/*.sha512
-            artifacts/checksums-*.txt
+            release-artifacts/**/*
           draft: ${{ github.event.inputs.draft || (github.event_name == 'workflow_dispatch' && !github.event.inputs.version) }}
           prerelease: false
           generate_release_notes: true
