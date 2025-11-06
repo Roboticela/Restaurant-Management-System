@@ -261,6 +261,24 @@ jobs:
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
           echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
 
+      - name: Create Android debug keystore (for Android builds)
+        if: contains(matrix.platform, 'android')
+        run: |
+          # Create .android directory if it doesn't exist
+          mkdir -p "$HOME/.android"
+          
+          # Check if debug keystore already exists\
+          if [ ! -f "$HOME/.android/debug.keystore" ]; then
+            echo "Creating debug keystore for Android signing..."
+            # Generate debug keystore with default password
+            keytool -genkey -v -keystore "$HOME/.android/debug.keystore" \
+              -storepass android -alias androiddebugkey -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US" || true
+          else
+            echo "Debug keystore already exists"
+          fi
+
       - name: Setup iOS (for iOS builds)
         if: contains(matrix.platform, 'ios')
         run: |

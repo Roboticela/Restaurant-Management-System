@@ -28,7 +28,7 @@
     "active": true,
     "targets": "all",
     "publisher": "Roboticela",
-    "copyright": "© {year} Roboticela. All rights reserved.",
+    "copyright": "© 2025 Roboticela. All rights reserved.",
     "category": "Business",
     "shortDescription": "Manage restaurant operations efficiently",
     "longDescription": "A comprehensive desktop application for managing restaurant sales, inventory, analytics, and more. Built with Tauri, React, and Rust for optimal performance and security.",
