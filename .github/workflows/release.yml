@@ -121,6 +121,9 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew install create-dmg
+          # Ensure create-dmg is available and working
+          which create-dmg || echo "Warning: create-dmg not found in PATH"
+          create-dmg --version || echo "Warning: create-dmg version check failed"
           # Install cross-compilation dependencies for x86_64 on Apple Silicon
           # Note: Cross-compilation from aarch64 to x86_64 on macOS is complex
           # and may require additional setup
@@ -205,20 +208,68 @@ jobs:
             echo "✓ dist directory accessible"
           fi
 
+      - name: Prepare macOS environment
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          # Ensure create-dmg and other tools are in PATH
+          export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+          echo "PATH: $PATH"
+          
+          # Verify create-dmg is accessible
+          if command -v create-dmg &> /dev/null; then
+            echo "✓ create-dmg found: $(which create-dmg)"
+            create-dmg --version || true
+          else
+            echo "⚠ create-dmg not found, trying to install..."
+            brew install create-dmg || true
+          fi
+          
+          # Ensure scripts will have execute permissions
+          # Set umask to allow execute permissions
+          umask 022
+          echo "Current umask: $(umask)"
+
       - name: Build platform-specific artifact
         shell: bash
+        env:
+          PATH: /usr/local/bin:/opt/homebrew/bin:$PATH
         run: |
           echo "Building for ${{ matrix.platform }}..."
           echo "Working directory: $(pwd)"
           echo "Contents of dist:"
           ls -la dist/ | head -5 || true
           echo "Running: ${{ matrix.build-command }}"
+          
+          # For macOS, ensure PATH includes homebrew
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            export PATH="/usr/local/bin:/opt/homebrew/bin:$PATH"
+            echo "PATH set to: $PATH"
+            which create-dmg || echo "Warning: create-dmg not in PATH"
+          fi
+          
           ${{ matrix.build-command }} 2>&1 | tee build.log || {
             echo "Build failed. Checking for common issues..."
-            echo "NSIS might be looking for files. Checking bundle directory:"
-            find src-tauri/target -path "*/bundle/*" -type f 2>/dev/null | head -10 || true
-            echo "Checking if dist directory is accessible from src-tauri:"
-            ls -la src-tauri/../dist/ 2>/dev/null || echo "Cannot access dist from src-tauri"
+            
+            # For macOS, check if bundle_dmg.sh exists and has permissions
+            if [[ "${{ runner.os }}" == "macOS" ]]; then
+              echo "Checking for DMG bundling scripts:"
+              find src-tauri/target -name "bundle_dmg.sh" -exec ls -la {} \; 2>/dev/null || true
+              # Try to fix permissions and retry if script exists
+              find src-tauri/target -name "bundle_dmg.sh" -exec chmod +x {} \; 2>/dev/null || true
+              echo "Checking create-dmg availability:"
+              which create-dmg || echo "create-dmg not found"
+              create-dmg --version || echo "create-dmg version check failed"
+            fi
+            
+            # For Windows, check NSIS issues
+            if [[ "${{ runner.os }}" == "Windows" ]]; then
+              echo "NSIS might be looking for files. Checking bundle directory:"
+              find src-tauri/target -path "*/bundle/*" -type f 2>/dev/null | head -10 || true
+              echo "Checking if dist directory is accessible from src-tauri:"
+              ls -la src-tauri/../dist/ 2>/dev/null || echo "Cannot access dist from src-tauri"
+            fi
+            
             cat build.log || true
             exit 1
           }
