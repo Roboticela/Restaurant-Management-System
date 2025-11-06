@@ -233,49 +233,51 @@ jobs:
       - name: Build platform-specific artifact
         shell: bash
         run: |
+          # CRITICAL: Set PATH first before any commands
+          export PATH="/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:${PATH}"
+          
+          # For macOS, ensure PATH includes homebrew early
+          if [[ "${{ runner.os }}" == "macOS" ]]; then
+            export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:${PATH}"
+          fi
+          
           set -e
-          # Ensure basic commands are available by setting PATH properly
-          # Use the existing PATH and prepend system directories
-          ORIGINAL_PATH="${PATH:-/usr/bin:/bin}"
-          export PATH="/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin:${ORIGINAL_PATH}"
           
           echo "Building for ${{ matrix.platform }}..."
           echo "Working directory: $(pwd)"
           echo "PATH: ${PATH}"
           echo "Contents of dist:"
-          /bin/ls -la dist/ | /usr/bin/head -5 || true
+          ls -la dist/ | head -5 || true
           echo "Running: ${{ matrix.build-command }}"
           
-          # For macOS, ensure PATH includes homebrew
+          # Verify create-dmg for macOS
           if [[ "${{ runner.os }}" == "macOS" ]]; then
-            export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:${ORIGINAL_PATH}"
-            echo "PATH set to: ${PATH}"
-            /usr/bin/which create-dmg || echo "Warning: create-dmg not in PATH"
+            which create-dmg || echo "Warning: create-dmg not in PATH"
           fi
           
-          ${{ matrix.build-command }} 2>&1 | /usr/bin/tee build.log || {
+          ${{ matrix.build-command }} 2>&1 | tee build.log || {
             echo "Build failed. Checking for common issues..."
             
             # For macOS, check if bundle_dmg.sh exists and has permissions
             if [[ "${{ runner.os }}" == "macOS" ]]; then
               echo "Checking for DMG bundling scripts:"
-              /usr/bin/find src-tauri/target -name "bundle_dmg.sh" -exec /bin/ls -la {} \; 2>/dev/null || true
+              find src-tauri/target -name "bundle_dmg.sh" -exec ls -la {} \; 2>/dev/null || true
               # Try to fix permissions and retry if script exists
-              /usr/bin/find src-tauri/target -name "bundle_dmg.sh" -exec /bin/chmod +x {} \; 2>/dev/null || true
+              find src-tauri/target -name "bundle_dmg.sh" -exec chmod +x {} \; 2>/dev/null || true
               echo "Checking create-dmg availability:"
-              /usr/bin/which create-dmg || echo "create-dmg not found"
+              which create-dmg || echo "create-dmg not found"
               create-dmg --version || echo "create-dmg version check failed"
             fi
             
             # For Windows, check NSIS issues
             if [[ "${{ runner.os }}" == "Windows" ]]; then
               echo "NSIS might be looking for files. Checking bundle directory:"
-              /usr/bin/find src-tauri/target -path "*/bundle/*" -type f 2>/dev/null | /usr/bin/head -10 || true
+              find src-tauri/target -path "*/bundle/*" -type f 2>/dev/null | head -10 || true
               echo "Checking if dist directory is accessible from src-tauri:"
-              /bin/ls -la src-tauri/../dist/ 2>/dev/null || echo "Cannot access dist from src-tauri"
+              ls -la src-tauri/../dist/ 2>/dev/null || echo "Cannot access dist from src-tauri"
             fi
             
-            /bin/cat build.log || true
+            cat build.log || true
             exit 1
           }
         continue-on-error: false
